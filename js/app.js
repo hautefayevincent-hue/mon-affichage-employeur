@@ -35,7 +35,7 @@ function champHTML(f) {
   if (f.type === "table") {
     const rows = (v && v.length) ? v : [f.cols.map(() => "")];
     return `<div class="champ" data-table="${f.k}"><label>${esc(f.l)}</label>${aide}<div class="tablewrap"><table class="saisie"><thead><tr>${f.cols.map((c) => `<th>${esc(c)}</th>`).join("")}<th></th></tr></thead><tbody>
-      ${rows.map((r, ri) => `<tr>${f.cols.map((c, ci) => `<td><input data-r="${ri}" data-c="${ci}" value="${esc(r[ci] || "")}" aria-label="${esc(c)}"></td>`).join("")}<td><button type="button" class="lien suppr" data-r="${ri}" aria-label="Supprimer la ligne">✕</button></td></tr>`).join("")}
+      ${rows.map((r, ri) => `<tr>${f.cols.map((c, ci) => `<td>${celluleHTML(f, r, ri, c, ci)}</td>`).join("")}<td><button type="button" class="lien suppr" data-r="${ri}" aria-label="Supprimer la ligne">✕</button></td></tr>`).join("")}
       </tbody></table></div><button type="button" class="btn-sec ajout">Ajouter une ligne</button></div>`;
   }
   const t = f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "email" ? "email" : "text";
@@ -45,8 +45,15 @@ function champHTML(f) {
   return `<div class="champ"><label for="f_${f.k}">${esc(f.l)}${req}</label>${input}${aide}</div>`;
 }
 
+function celluleHTML(f, r, ri, c, ci) {
+  const v = r[ci] || "";
+  const ch = f.choix && f.choix[ci];
+  if (ch) return `<select data-r="${ri}" data-c="${ci}" aria-label="${esc(c)}"><option value="">Choisir</option>${ch.map((o) => `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+  return `<input data-r="${ri}" data-c="${ci}" value="${esc(v)}" aria-label="${esc(c)}">`;
+}
+
 function lireTable(box) {
-  return [...box.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("input")].map((i) => i.value.trim()))
+  return [...box.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("input, select")].map((i) => i.value.trim()))
     .filter((r) => r.some((x) => x));
 }
 
@@ -66,13 +73,13 @@ function lierChamps(root) {
   }));
   root.querySelectorAll("[data-table]").forEach((box) => {
     const k = box.dataset.table;
-    box.querySelectorAll("tbody input").forEach((i) => i.addEventListener("input", () => { A[k] = lireTable(box); sauverBrouillon(); }));
+    box.querySelectorAll("tbody input, tbody select").forEach((i) => i.addEventListener(i.tagName === "SELECT" ? "change" : "input", () => { A[k] = lireTable(box); sauverBrouillon(); }));
     $(".ajout", box).addEventListener("click", () => {
       const f = ETAPES.flatMap((e) => e.champs).find((x) => x.k === k);
       A[k] = lireTable(box); A[k].push(f.cols.map(() => "")); rendre(false);
     });
     box.querySelectorAll(".suppr").forEach((b) => b.addEventListener("click", () => {
-      const rows = [...box.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("input")].map((i) => i.value.trim()));
+      const rows = [...box.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("input, select")].map((i) => i.value.trim()));
       rows.splice(+b.dataset.r, 1); A[k] = rows.filter((r) => r.some((x) => x)); sauverBrouillon(); rendre(false);
     }));
   });
@@ -133,6 +140,7 @@ function donneesPack() {
   });
   // situation : réponses non affichées = non
   champs.filter((f) => f.type === "ouinon").forEach((f) => { if (!d[f.k]) d[f.k] = "non"; });
+  d.s_incendie = incendie(A) ? "oui" : "non";
   if (d.hc_jours) {
     const j = {}; Object.entries(d.hc_jours).forEach(([k, r]) => { if (r.some((x) => x)) j[k] = r; }); d.hc_jours = j;
   }
@@ -170,7 +178,7 @@ async function rendreRecap(zone) {
   zone.innerHTML = `<h2>Votre pack</h2>
     <p class="intro">${docs.length} documents pour <b>${esc(A.raison || "")}</b>, plus le panneau récapitulatif A3 et le pack complet en un seul PDF.</p>
     <div class="deuxcol"><div><h3 class="sous">Socle</h3><ul class="docs">${socle.map((d) => `<li>${nom(d[1])}</li>`).join("")}</ul></div>
-    <div><h3 class="sous">Selon votre situation</h3><ul class="docs">${sit.length ? sit.map((d) => `<li>${nom(d[1])}</li>`).join("") : "<li>Aucun document supplémentaire</li>"}</ul></div></div>
+    <div><h3 class="sous">Documents complémentaires</h3><ul class="docs">${sit.length ? sit.map((d) => `<li>${nom(d[1])}</li>`).join("") : "<li>Aucun document supplémentaire</li>"}</ul></div></div>
     ${ESPACE_ID ? "" : `<label class="cgv"><input type="checkbox" id="cgv"><span>J'accepte les <a href="cgv.html" target="_blank">conditions générales de vente</a> je demande la fourniture immédiate du pack et je reconnais perdre mon droit de rétractation dès son téléchargement.</span></label>`}
     <div class="actions-recap"><button class="btn" id="generer">${ESPACE_ID ? "Télécharger le pack à jour" : C.PAIEMENT_ACTIF ? `Payer ${esc(C.PRIX_HT)} € HT et recevoir le pack` : "Générer mon pack"}</button></div>
     ${ESPACE_ID && regs.length ? `<div class="encart"><h3 class="sous">Feuillets supplémentaires de registres</h3>
