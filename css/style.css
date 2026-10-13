@@ -69,3 +69,5 @@ table.saisie input { padding: 6px 8px; font-size: .9rem; }
 .prix { margin-left: 12px; color: var(--grey); font-weight: 600; }
 .carte + .carte { margin-top: 16px; }
 .hero .btn { display: inline-block; text-decoration: none; }
+select { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #B8C2CF; border-radius: 7px; background: #fff; }
+table.saisie select { padding: 6px 8px; font-size: .9rem; }
