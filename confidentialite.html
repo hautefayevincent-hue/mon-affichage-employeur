@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Politique de confidentialité</title>
+
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="haut"><a href="index.html" class="marque" data-nom></a></header>
+<main class="page texte">
+
+<h1>Politique de confidentialité</h1>
+<p class="avert">Projet à faire valider. Les éléments entre crochets sont à compléter.</p>
+<h2>Responsable du traitement</h2>
+<p>[Nom et prénom], [adresse], [adresse de contact].</p>
+<h2>Données traitées</h2>
+<p>Informations sur l'établissement saisies dans le questionnaire (raison sociale, adresse, SIRET, effectif, coordonnées des services, organisation du travail), nom des personnes désignées dans les documents (signataire, référents, membres du CSE) et adresse électronique de contact. Aucune donnée concernant les salariés n'est demandée pour les registres, qui sont fournis vierges.</p>
+<h2>Finalités</h2>
+<p>Fourniture du pack, envoi du lien personnel, nouvelle génération des documents et information du client lors d'une modification des textes.</p>
+<h2>Fabrication des documents</h2>
+<p>Les PDF sont fabriqués dans le navigateur du client. Les réponses sont enregistrées dans un tableur Google Sheets du vendeur pour permettre leur réutilisation.</p>
+<h2>Durée de conservation</h2>
+<p>[Durée à définir.]</p>
+<h2>Vos droits</h2>
+<p>Accès, rectification, effacement, limitation et opposition : écrire à [adresse de contact]. Réclamation possible auprès de la CNIL.</p>
+
+</main>
+<footer class="bas"><a href="mentions-legales.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></footer>
+<script src="config.js"></script>
+<script>document.querySelectorAll("[data-nom]").forEach(e=>e.textContent=CONFIG.NOM_COMMERCIAL);document.querySelectorAll("[data-prix]").forEach(e=>e.textContent=CONFIG.PRIX_HT)</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Affichages obligatoires employeur : pack personnalisé à imprimer</title>
+<meta name="description" content="Pack personnalisé des affichages et registres obligatoires de l'employeur : socle légal et documents selon l'effectif et la situation, textes Légifrance en vigueur.">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="haut"><a href="index.html" class="marque" data-nom></a></header>
+<main class="page texte">
+
+<section class="hero">
+<h1>Vos affichages et registres obligatoires, prêts à imprimer</h1>
+<p class="intro">Répondez au questionnaire : vous recevez tous les documents dus par votre établissement, remplis à votre nom, avec les textes officiels en vigueur.</p>
+<p><a class="btn" href="commande.html">Composer mon pack</a> <span class="prix"><span data-prix></span> € HT par établissement</span></p>
+</section>
+<section class="carte">
+<h2>Ce que contient le pack</h2>
+<p>Le socle dû par tout employeur : coordonnées de l'inspection du travail et du service de santé au travail, numéros d'urgence, horaire collectif, accès au document unique, interdiction de fumer et de vapoter (modèle officiel), égalité de rémunération et discriminations, harcèlement moral et sexuel, conventions et accords, congés payés, premiers secours, registre unique du personnel, document unique, registres de sécurité, de danger grave et imminent et d'alertes.</p>
+<p>Les documents propres à votre situation, déterminés par vos réponses : CSE et élections, consigne incendie et exercices, repos hebdomadaire, décompte de la durée du travail, notice de poste chimique, index égalité, lanceurs d'alerte, participation, accidents bénins.</p>
+<p>Un panneau récapitulatif A3, chaque document en PDF séparé et le pack complet en un seul fichier.</p>
+</section>
+<section class="carte">
+<h2>Textes en vigueur, suivis</h2>
+<p>Les textes reproduits proviennent de Légifrance, avec leur date d'entrée en vigueur. Votre lien personnel vous permet de retélécharger vos documents à jour et de modifier vos réponses.</p>
+</section>
+
+</main>
+<footer class="bas"><a href="mentions-legales.html">Mentions légales</a> · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a></footer>
+<script src="config.js"></script>
+<script>document.querySelectorAll("[data-nom]").forEach(e=>e.textContent=CONFIG.NOM_COMMERCIAL);document.querySelectorAll("[data-prix]").forEach(e=>e.textContent=CONFIG.PRIX_HT)</script>
+</body>
+</html>
