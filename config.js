@@ -2,11 +2,13 @@
 window.CONFIG = {
   NOM_COMMERCIAL: "Mon Affichage Employeur",
   // URL de l'application web Apps Script (Déployer > Nouveau déploiement > Application web).
-  // Laisser vide pour un essai local : rien n'est enregistré, le pack est généré quand même.
+  // Laisser vide pour un essai : rien n'est enregistré, le pack est généré quand même.
   APPS_SCRIPT_URL: "",
   // Paiement : désactivé tant que la micro-entreprise n'est pas créée (Lemon Squeezy à brancher ensuite).
   PAIEMENT_ACTIF: false,
   URL_PAIEMENT: "",
   PRIX_HT: "59",
   CONTACT: "[adresse de contact]",
+  // Code GoatCounter (mesure d'audience sans cookie). Laisser vide pour la désactiver.
+  GOATCOUNTER: "",
 };

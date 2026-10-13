@@ -8,7 +8,7 @@ const incendie = (a) => oui(a, "s_plus50") || oui(a, "s_inflammables");
 const ETAPES = [
   {
     id: "entreprise", titre: "Votre établissement",
-    intro: "Ces informations figurent sur chaque document. Un pack correspond à un établissement.",
+    intro: "Ces informations figurent sur chaque document. Un pack correspond à un établissement.", bouton: "Continuer",
     champs: [
       { k: "raison", l: "Raison sociale", req: true },
       { k: "adresse", l: "Adresse de l'établissement", req: true },
@@ -17,12 +17,12 @@ const ETAPES = [
       { k: "effectif", l: "Effectif (nombre de salariés)", req: true, type: "number" },
       { k: "signataire", l: "Nom et qualité du signataire", req: true, ph: "Ex. : Jean Martin, gérant" },
       { k: "ville", l: "Ville de signature", req: true },
-      { k: "email", l: "Adresse électronique", req: true, type: "email", aide: "Vous y recevrez votre lien personnel pour retrouver et mettre à jour votre pack." },
+      { k: "email", l: "Adresse électronique", req: true, type: "email", aide: "En cas de commande, votre lien personnel vous est adressé à cette adresse. Elle n'est pas transmise à des tiers." },
     ],
   },
   {
     id: "situation", titre: "Votre situation",
-    intro: "Vos réponses déterminent les documents supplémentaires dus par votre établissement.",
+    intro: "Vos réponses déterminent les documents qui s'ajoutent au socle applicable à tout employeur.", bouton: "Voir le résultat du diagnostic",
     champs: [
       { k: "s_cse", l: "Un comité social et économique (CSE) est-il en place ?", type: "ouinon", si: (a) => eff(a) >= 11 },
       { k: "s_fumoir", l: "Avez-vous un emplacement réservé aux fumeurs ?", type: "ouinon" },
@@ -40,8 +40,9 @@ const ETAPES = [
       { k: "s_du_num", l: "Le document unique est-il consultable en ligne ?", type: "ouinon" },
     ],
   },
+  { id: "diagnostic", titre: "Résultat du diagnostic", champs: [], bouton: "Compléter mes informations" },
   {
-    id: "contacts", titre: "Inspection et santé au travail",
+    id: "contacts", titre: "Inspection et santé au travail", intro: "Ces coordonnées figurent sur l'affichage obligatoire et sur le panneau récapitulatif.",
     champs: [
       { k: "it_service", l: "Unité de contrôle de l'inspection du travail", req: true, aide: "Chaque DREETS (direction régionale du travail) publie l'annuaire de ses inspections sur son site : cherchez « DREETS » suivi du nom de votre région, rubrique « Contacter l'inspection du travail ». En Île-de-France : idf.drieets.gouv.fr. Le service de renseignements en droit du travail peut aussi vous indiquer l'inspecteur compétent pour votre adresse." },
       { k: "it_adresse", l: "Adresse de l'inspection", req: true },
@@ -104,7 +105,7 @@ const ETAPES = [
   },
   {
     id: "complements", titre: "Informations complémentaires",
-    intro: "Seules les rubriques qui concernent votre établissement sont affichées.",
+    intro: "Informations nécessaires aux documents propres à votre situation.",
     vide: "Aucun renseignement supplémentaire n'est nécessaire pour votre établissement.",
     champs: [
       { k: "_t_incendie", type: "titre", l: "Consigne de sécurité incendie", si: (a) => incendie(a) },
@@ -157,7 +158,7 @@ const ETAPES = [
       { k: "pa_lieu", l: "Lieu de consultation de l'accord", req: true, si: (a) => eff(a) >= 50 || oui(a, "s_participation") },
     ],
   },
-  { id: "recap", titre: "Votre pack", champs: [] },
+  { id: "recap", titre: "Récapitulatif", champs: [] },
 ];
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
