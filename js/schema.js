@@ -2,6 +2,8 @@
 // Les codes de champ sont ceux du générateur (Champs_questionnaire.csv).
 const eff = (a) => parseInt(a.effectif || "0", 10) || 0;
 const oui = (a, k) => a[k] === "oui";
+// Consigne incendie (R. 4227-34 et R. 4227-37) : l'une ou l'autre des deux situations suffit.
+const incendie = (a) => oui(a, "s_plus50") || oui(a, "s_inflammables");
 
 const ETAPES = [
   {
@@ -27,8 +29,9 @@ const ETAPES = [
       { k: "s_equipes", l: "Travaillez-vous en équipes successives ?", type: "ouinon" },
       { k: "s_repos_hors_dimanche", l: "Des salariés ont-ils leur repos hebdomadaire un autre jour que le dimanche ?", type: "ouinon" },
       { k: "s_horaires_individuels", l: "Des salariés ne suivent-ils pas l'horaire collectif affiché ?", type: "ouinon" },
-      { k: "s_incendie", l: "Plus de cinquante personnes peuvent-elles être habituellement présentes, ou manipulez-vous des matières inflammables ?", type: "ouinon" },
+      { k: "s_plus50", l: "Plus de cinquante personnes (salariés et public) peuvent-elles être habituellement présentes dans l'établissement ?", type: "ouinon" },
       { k: "s_chimique", l: "Des salariés utilisent-ils des agents chimiques dangereux ?", type: "ouinon" },
+      { k: "s_inflammables", l: "Des matières inflammables sont-elles manipulées ou mises en œuvre dans l'établissement ?", type: "ouinon" },
       { k: "s_participation", l: "Avez-vous mis en place un accord de participation ?", type: "ouinon", si: (a) => eff(a) < 50 },
       { k: "s_accidents_benins", l: "Tenez-vous un registre des accidents du travail bénins ?", type: "ouinon" },
       { k: "s_caisse", l: "Relevez-vous d'une caisse de congés payés ?", type: "ouinon" },
@@ -40,11 +43,11 @@ const ETAPES = [
   {
     id: "contacts", titre: "Inspection et santé au travail",
     champs: [
-      { k: "it_service", l: "Unité de contrôle de l'inspection du travail", req: true, aide: "Coordonnées disponibles auprès de la DREETS de votre région." },
+      { k: "it_service", l: "Unité de contrôle de l'inspection du travail", req: true, aide: "Chaque DREETS (direction régionale du travail) publie l'annuaire de ses inspections sur son site : cherchez « DREETS » suivi du nom de votre région, rubrique « Contacter l'inspection du travail ». En Île-de-France : idf.drieets.gouv.fr. Le service de renseignements en droit du travail peut aussi vous indiquer l'inspecteur compétent pour votre adresse." },
       { k: "it_adresse", l: "Adresse de l'inspection", req: true },
       { k: "it_tel", l: "Téléphone de l'inspection", req: true },
       { k: "it_agent", l: "Nom de l'inspecteur compétent", req: true },
-      { k: "spst_nom", l: "Service de prévention et de santé au travail", req: true },
+      { k: "spst_nom", l: "Service de prévention et de santé au travail", req: true, aide: "C'est le service auquel votre entreprise adhère : son nom, son adresse et le médecin référent figurent sur votre contrat d'adhésion, vos appels de cotisation ou les convocations de visite médicale de vos salariés. Si vous n'êtes pas encore adhérent, la DREETS de votre région indique les services agréés pour votre secteur." },
       { k: "spst_adresse", l: "Adresse du service", req: true },
       { k: "spst_tel", l: "Téléphone du service", req: true },
       { k: "spst_medecin", l: "Nom du médecin du travail", req: true },
@@ -100,20 +103,20 @@ const ETAPES = [
     ],
   },
   {
-    id: "complements", titre: "Documents selon votre situation",
+    id: "complements", titre: "Informations complémentaires",
     intro: "Seules les rubriques qui concernent votre établissement sont affichées.",
     vide: "Aucun renseignement supplémentaire n'est nécessaire pour votre établissement.",
     champs: [
-      { k: "_t_incendie", type: "titre", l: "Consigne de sécurité incendie", si: (a) => oui(a, "s_incendie") },
-      { k: "ci_local", l: "Local ou zone concerné", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_secours", l: "Service de secours de premier appel (adresse et numéro)", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_materiel", l: "Matériel d'extinction et de secours", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_equipiers", l: "Personnes chargées de mettre ce matériel en action", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_evac", l: "Personnes chargées de diriger l'évacuation", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_handicap", l: "Mesures pour les personnes handicapées", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_alerte", l: "Moyens d'alerte", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_appel", l: "Personnes chargées d'aviser les sapeurs-pompiers", req: true, si: (a) => oui(a, "s_incendie") },
-      { k: "ci_rassemblement", l: "Point de rassemblement", req: true, si: (a) => oui(a, "s_incendie") },
+      { k: "_t_incendie", type: "titre", l: "Consigne de sécurité incendie", si: (a) => incendie(a) },
+      { k: "ci_local", l: "Local ou zone concerné", req: true, si: (a) => incendie(a) },
+      { k: "ci_secours", l: "Service de secours de premier appel (adresse et numéro)", req: true, si: (a) => incendie(a) },
+      { k: "ci_materiel", l: "Matériel d'extinction et de secours", req: true, si: (a) => incendie(a) },
+      { k: "ci_equipiers", l: "Personnes chargées de mettre ce matériel en action", req: true, si: (a) => incendie(a) },
+      { k: "ci_evac", l: "Personnes chargées de diriger l'évacuation", req: true, si: (a) => incendie(a) },
+      { k: "ci_handicap", l: "Mesures pour les personnes handicapées", req: true, si: (a) => incendie(a) },
+      { k: "ci_alerte", l: "Moyens d'alerte", req: true, si: (a) => incendie(a) },
+      { k: "ci_appel", l: "Personnes chargées d'aviser les sapeurs-pompiers", req: true, si: (a) => incendie(a) },
+      { k: "ci_rassemblement", l: "Point de rassemblement", req: true, si: (a) => incendie(a) },
       { k: "_t_chimique", type: "titre", l: "Notice de poste (agents chimiques dangereux)", si: (a) => oui(a, "s_chimique") },
       { k: "np_poste", l: "Poste ou situation de travail", req: true, si: (a) => oui(a, "s_chimique") },
       { k: "np_agents", l: "Agents chimiques dangereux utilisés", req: true, si: (a) => oui(a, "s_chimique") },
@@ -126,7 +129,7 @@ const ETAPES = [
       { k: "np_date", l: "Date d'actualisation", req: true, type: "date", si: (a) => oui(a, "s_chimique") },
       { k: "_t_cse", type: "titre", l: "Comité social et économique", si: (a) => oui(a, "s_cse") },
       { k: "cse_membres", l: "Membres du CSE", type: "table", si: (a) => oui(a, "s_cse"),
-        cols: ["Nom et prénom", "Titulaire ou suppléant", "Emplacement de travail habituel", "Commission(s)"] },
+        cols: ["Nom et prénom", "Qualité", "Emplacement de travail habituel", "Commission(s)"], choix: { 1: ["Titulaire", "Suppléant"] } },
       { k: "ref_cse", l: "Référent harcèlement sexuel et agissements sexistes du CSE", req: true, si: (a) => oui(a, "s_cse") },
       { k: "cse_date", l: "Date des dernières élections", req: true, type: "date", si: (a) => oui(a, "s_cse") },
       { k: "cse_fin", l: "Date de fin des mandats", req: true, type: "date", si: (a) => oui(a, "s_cse") },
