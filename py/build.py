@@ -322,7 +322,6 @@ def doc03():
                              ("TOPPADDING", (0, 1), (-1, -1), 10), ("BOTTOMPADDING", (0, 1), (-1, -1), 10), ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
     f += [acc, Spacer(1, 8), field_table([("Date de la dernière mise à jour", v("du_maj", 20))])]
     f += [Spacer(1, 6), rappel("dans les établissements dotés d'un règlement intérieur, le présent avis est affiché au même emplacement que celui réservé au règlement intérieur (article R. 4121-4).")]
-    f += [Spacer(1, 8), P("Le document est également tenu à la disposition des membres de la délégation du personnel du comité social et économique, du service de prévention et de santé au travail, des agents du système d'inspection du travail et des agents des services de prévention des organismes de sécurité sociale. Les anciens travailleurs peuvent consulter les versions en vigueur durant leur période d'activité.", "body")]
     return f
 
 def official_model(png, w_mm=180):
@@ -339,13 +338,55 @@ def doc04():
     here = os.path.dirname(os.path.abspath(__file__))
     f = [NextPageTemplate("N"), PageBreak(), Meta("04", "Interdiction de fumer", "AFFICHAGE OBLIGATOIRE"),
          Spacer(1, 4*mm), official_model(os.path.join(here, "modele_espace_sans_tabac.png"))]
-    f += [NextPageTemplate("P"), PageBreak()]
-    f += head("04", "Interdiction de vapoter", "Interdiction de vapoter",
-              "Articles L. 3513-6, R. 3513-2 et R. 3513-3 du code de la santé publique")
-    f += [Spacer(1, 30*mm), boxed([P('<font size="34"><b>IL EST INTERDIT</b></font>', "center"), Spacer(1, 16),
-                 P('<font size="34"><b>DE VAPOTER</b></font>', "center"), Spacer(1, 22),
-                 P('<font size="13">dans les lieux de travail fermés et couverts à usage collectif</font>', "center")], bg=colors.white)]
+    f += [NextPageTemplate("N"), PageBreak(), Meta("04", "Interdiction de vapoter", "AFFICHAGE OBLIGATOIRE"), AfficheVapotage()]
     return f
+
+class AfficheVapotage(Flowable):
+    """Signalisation de l'interdiction de vapoter (art. R. 3513-3 CSP : aucun modèle officiel imposé)."""
+    def wrap(self, aw, ah):
+        self.w, self.h = aw, ah - 2
+        return self.w, self.h
+    def draw(self):
+        c, W, H = self.canv, self.w, self.h
+        cx = W / 2
+        # bandeau haut
+        c.setFillColor(NAVY); c.rect(0, H - 34*mm, W, 34*mm, stroke=0, fill=1)
+        c.setFillColor(colors.white); c.setFont("Helvetica-Bold", 34)
+        c.drawCentredString(cx, H - 22*mm, "ESPACE SANS VAPOTAGE")
+        # panneau d'interdiction
+        cy, r = H - 112*mm, 62*mm
+        c.setFillColor(colors.white); c.setStrokeColor(RED); c.setLineWidth(11*mm)
+        c.circle(cx, cy, r - 5.5*mm, stroke=1, fill=1)
+        # cigarette électronique (stylo) inclinée
+        c.saveState(); c.translate(cx - 4*mm, cy - 6*mm); c.rotate(20)
+        body = colors.HexColor("#3B4452")
+        c.setFillColor(body); c.setStrokeColor(body); c.setLineWidth(0.5)
+        c.roundRect(-38*mm, -6*mm, 62*mm, 12*mm, 3*mm, stroke=0, fill=1)          # corps
+        c.setFillColor(colors.HexColor("#9AA4B1"))
+        c.roundRect(24*mm, -4.5*mm, 12*mm, 9*mm, 2*mm, stroke=0, fill=1)          # réservoir
+        c.setFillColor(colors.HexColor("#1A1F27"))
+        c.roundRect(36*mm, -2.6*mm, 8*mm, 5.2*mm, 1.6*mm, stroke=0, fill=1)        # embout
+        c.setFillColor(colors.HexColor("#6FA8DC")); c.circle(-28*mm, 0, 1.6*mm, stroke=0, fill=1)  # bouton
+        # vapeur
+        c.setStrokeColor(colors.HexColor("#A8B3C2")); c.setLineWidth(2.6*mm); c.setLineCap(1)
+        for dy, k in ((0, 1.0), (7*mm, 0.8), (-7*mm, 0.8)):
+            pth = c.beginPath(); x0 = 47*mm
+            pth.moveTo(x0, dy); pth.curveTo(x0 + 6*mm*k, dy + 8*mm, x0 + 10*mm*k, dy - 8*mm, x0 + 16*mm*k, dy + 2*mm)
+            c.drawPath(pth, stroke=1, fill=0)
+        c.restoreState()
+        # barre d'interdiction
+        c.setStrokeColor(RED); c.setLineWidth(11*mm); c.setLineCap(0)
+        import math
+        a = math.radians(45); d = r - 9*mm
+        c.line(cx - d*math.cos(a), cy + d*math.sin(a), cx + d*math.cos(a), cy - d*math.sin(a))
+        # textes
+        c.setFillColor(RED); c.setFont("Helvetica-Bold", 44)
+        c.drawCentredString(cx, cy - r - 22*mm, "INTERDIT DE VAPOTER")
+        c.setFillColor(INK); c.setFont("Helvetica", 15)
+        c.drawCentredString(cx, cy - r - 36*mm, "Il est interdit de vapoter dans les lieux de travail")
+        c.drawCentredString(cx, cy - r - 44*mm, "fermés et couverts à usage collectif.")
+        c.setFillColor(GREY); c.setFont("Helvetica", 8.5)
+        c.drawCentredString(cx, 4*mm, "Articles L. 3513-6, R. 3513-2 et R. 3513-3 du code de la santé publique")
 
 def doc04b():
     here = os.path.dirname(os.path.abspath(__file__))
@@ -463,12 +504,12 @@ def doc10():
     return f
 
 def doc11():
-    f = [NextPageTemplate("P"), PageBreak()]
+    f = [NextPageTemplate("L"), PageBreak()]
     f += head("11", "Document unique", "Document unique d'évaluation des risques professionnels : trame à compléter",
               "Articles L. 4121-1 à L. 4121-3-1 et R. 4121-1 à R. 4121-4 du code du travail", "TRAME À COMPLÉTER")
-    f += [establishment_line(), Spacer(1, 6),
+    f += [establishment_line(W_L), Spacer(1, 6),
           field_table([("Activité de l'établissement", v("activite", 60)), ("Effectif", v("effectif", 10)),
-                       ("Personne chargée de l'évaluation", v("du_contact", 45)), ("Date de l'évaluation", '<font color="#8A94A3">....................</font>')])]
+                       ("Personne chargée de l'évaluation", v("du_contact", 45)), ("Date de l'évaluation", '<font color="#8A94A3">....................</font>')], total=W_L)]
     f += [Spacer(1, 4), rappel("cette trame ne constitue pas l'évaluation des risques. Le document unique n'est établi qu'une fois l'inventaire des risques de chaque unité de travail réalisé et consigné.")]
     f += [P("Rappel des obligations", "h2"),
           grid(["Point", "Règle"],
@@ -477,9 +518,9 @@ def doc11():
                 ["Prévention", "Moins de 50 salariés : actions de prévention et de protection consignées dans le document unique. 50 salariés et plus : programme annuel de prévention des risques professionnels et d'amélioration des conditions de travail."],
                 ["Conservation", "Le document et ses versions successives sont conservés pendant au moins quarante ans."],
                 ["Transmission", "Le document est transmis au service de prévention et de santé au travail à chaque mise à jour."]],
-               [32*mm, 142*mm])]
+               [36*mm, W_L - 36*mm])]
     f += [P("Historique des versions", "h2"),
-          grid(["Version", "Date", "Motif de la mise à jour", "Rédacteur"], [], [20*mm, 30*mm, 84*mm, 40*mm], nblank=5, rowh=7)]
+          grid(["Version", "Date", "Motif de la mise à jour", "Rédacteur"], [], [24*mm, 34*mm, W_L - 118*mm, 60*mm], nblank=3, rowh=7)]
     f += [NextPageTemplate("L"), PageBreak()]
     f += head("11", "Document unique", "Évaluation des risques par unité de travail",
               "Article R. 4121-1 du code du travail", "TRAME À COMPLÉTER")
@@ -887,7 +928,7 @@ DOCS = [("01_Socle", "01_Coordonnees_obligatoires", doc01, "P"), ("01_Socle", "0
         ("01_Socle", "05_Egalite_et_discriminations", doc05, "P"), ("01_Socle", "06_Harcelement", doc06, "P"),
         ("01_Socle", "07_Conventions_et_accords", doc07, "P"), ("01_Socle", "08_Conges_payes", doc08, "P"),
         ("01_Socle", "09_Premiers_secours", doc09, "P"), ("01_Socle", "10_Registre_unique_du_personnel", doc10, "L"),
-        ("01_Socle", "11_Trame_document_unique_DUERP", doc11, "P"), ("01_Socle", "12_Registre_de_securite", doc12, "L"),
+        ("01_Socle", "11_Trame_document_unique_DUERP", doc11, "L"), ("01_Socle", "12_Registre_de_securite", doc12, "L"),
         ("01_Socle", "14_Registre_alertes_sante_environnement", doc14, "L"),
         ("02_Selon_situation", "02b_Amenagement_temps_de_travail", doc02b, "P"),
         ("02_Selon_situation", "04b_Emplacement_fumeur", doc04b, "N"), ("02_Selon_situation", "13_Registre_danger_grave_imminent", doc13, "L"),
