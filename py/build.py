@@ -18,7 +18,7 @@ def _raw(x):
     return _html.unescape(x) if isinstance(x, str) else x
 
 VERSION = "Version 2026-10"
-ASOF = "Textes en vigueur au 12 octobre 2026"
+ASOF = "Textes en vigueur au 16 octobre 2026"
 NAVY = colors.HexColor("#1F3A5F")
 INK = colors.HexColor("#1A1A1A")
 GREY = colors.HexColor("#5A6270")
@@ -85,6 +85,38 @@ class Meta(Flowable):
         Ctx.meta = (self.num, self.short); Ctx.kind = self.kind
 
 def P(txt, st="body"): return Paragraph(txt, ST[st])
+
+import re as _re
+def parse_h(x):
+    """'8 h 30', '8h30', '17:30', '8 h' -> minutes ; None si illisible."""
+    t = _html.unescape(str(x or "")).strip().lower().replace("heures", "h").replace("heure", "h")
+    m = _re.fullmatch(r"(\d{1,2})\s*(?:h|:)\s*(\d{1,2})?\s*(?:min)?", t)
+    if not m:
+        return None
+    return int(m.group(1)) * 60 + int(m.group(2) or 0)
+
+def _span(x):
+    parts = _re.split(r"\s*[-–à]\s*", _html.unescape(str(x or "")).strip())
+    if len(parts) != 2:
+        return None
+    a, b = parse_h(parts[0]), parse_h(parts[1])
+    return (b - a) if a is not None and b is not None and b > a else None
+
+def duree_jour(r):
+    """r = [début, fin, repos (début - fin), reprise - fin, durée] -> minutes travaillées ou None."""
+    a, b = parse_h(r[0]), parse_h(r[1])
+    if a is None or b is None or b <= a:
+        return None
+    tot = b - a
+    rep = _span(r[3]) if len(r) > 3 else None
+    if rep:
+        return tot + rep
+    pause = _span(r[2]) if len(r) > 2 else None
+    return tot - pause if pause else tot
+
+def fmt_h(m):
+    h, mi = divmod(int(m), 60)
+    return "%d h" % h if not mi else "%d h %02d" % (h, mi)
 
 def field_table(rows, colw=(62*mm, None), total=174*mm):
     data = [[P("<b>%s</b>" % a, "cell"), P(b, "cell")] for a, b in rows]
@@ -212,14 +244,14 @@ def doc01():
                 ["Centre de secours le plus proche (facultatif)", v("secours_local", 40)]],
                [120*mm, 54*mm])]
     f += [P("Défenseur des droits", "h2"),
-          field_table([("Accueil téléphonique", "<b>09 69 39 00 00</b>"),
+          field_table([("Adresse postale", "Défenseur des droits, Libre réponse 71120, 75342 Paris Cedex 07"), ("Accueil téléphonique", "<b>09 69 39 00 00</b>"),
                        ("Site internet", "www.defenseurdesdroits.fr"),
                        ("Mission", "Lutte contre les discriminations et promotion de l'égalité ; toute personne s'estimant victime d'une discrimination peut le saisir gratuitement.")])]
     return f
 
 def doc02():
     f = head("02", "Horaires collectifs", "Horaire collectif de travail",
-             "Articles L. 3171-1 et D. 3171-1 à D. 3171-5 du code du travail")
+             "Articles L. 3171-1 et D. 3171-1 à D. 3171-7 du code du travail")
     f += [establishment_line(), Spacer(1, 6)]
     f += [field_table([("Service ou atelier concerné", v("hc_service", 50)), ("Durée hebdomadaire de travail", v("hc_duree", 15) + " heures"),
                        ("Date d'entrée en vigueur", v("hc_date", 20))])]
@@ -232,7 +264,15 @@ def doc02():
         elif Ctx.blank:
             rows.append([d, "", "", "", "", ""])
         else:
-            rows.append([d] + list(Ctx.data.get("hc_jours", {}).get(d, ["Repos", "", "", "", ""])))
+            r = list(Ctx.data.get("hc_jours", {}).get(d, ["Repos", "", "", "", ""]))
+            r += [""] * (5 - len(r))
+            if not str(r[4]).strip():
+                m = duree_jour(r)
+                if m: r[4] = fmt_h(m)
+            rows.append([d] + r)
+    if not Ctx.blank and not getattr(Ctx, "gabarit", False):
+        tot = sum(parse_h(x[5]) or 0 for x in rows)
+        if tot: rows.append(["<b>Total de la semaine</b>", "", "", "", "", "<b>%s</b>" % fmt_h(tot)])
     t = grid(["Jour", "Début", "Fin", "Repos (début - fin)", "Reprise - fin", "Durée du jour"], rows,
              [30*mm, 25*mm, 25*mm, 36*mm, 33*mm, 25*mm])
     if Ctx.blank:
@@ -247,7 +287,22 @@ def doc02():
         er = Ctx.data.get("equipes", [])
     t2 = grid(["Équipe", "Jours", "Horaires (début - fin, repos)", "Composition nominative, y compris salariés intérimaires"], er,
               [26*mm, 34*mm, 44*mm, 70*mm], nblank=max(0, 3 - len(er)), rowh=6)
-    f += [t2]
+    f += [t2, Spacer(1, 4), rappel("la composition nominative de chaque équipe, y compris les salariés intérimaires, est indiquée par un tableau affiché ou par un registre tenu à jour (article D. 3171-7). Un double de l'horaire collectif et de ses rectifications est préalablement adressé à l'agent de contrôle de l'inspection du travail ; toute modification donne lieu, avant son application, à une rectification affichée (article D. 3171-4).")]
+    f += [Spacer(1, 6), signature_block()]
+    return f
+
+def doc02b():
+    f = [NextPageTemplate("P"), PageBreak()]
+    f += head("02b", "Aménagement du temps de travail", "Programme de la durée du travail sur plusieurs semaines",
+              "Articles L. 3121-41 et D. 3171-5 du code du travail")
+    f += [establishment_line(), Spacer(1, 6),
+          field_table([("Accord ou décision applicable", v("am_accord", 60)), ("Nombre de semaines de la période de référence", v("am_semaines", 10)),
+                       ("Début de la période de référence", v("am_debut", 20))])]
+    rows = [[v("am_sem"), v("am_horaire"), v("am_duree")]] if getattr(Ctx, "gabarit", False) else ([] if Ctx.blank else [list(r) for r in Ctx.data.get("am_programme", [])])
+    f += [P("Horaire de travail et répartition de la durée du travail pour chaque semaine", "h2"),
+          grid(["Semaine", "Horaire et répartition de la durée du travail", "Durée de la semaine"], rows,
+               [36*mm, 104*mm, 34*mm], nblank=max(0, 6 - len(rows)), rowh=6),
+          Spacer(1, 4), rappel("l'affichage indique le nombre de semaines que comporte la période de référence et, pour chaque semaine incluse dans cette période, l'horaire de travail et la répartition de la durée du travail. Les changements de durée ou d'horaire de travail sont communiqués aux salariés en respectant un délai de prévenance de sept jours ouvrés, sauf stipulation contraire de l'accord (article D. 3171-5).")]
     f += [Spacer(1, 6), signature_block()]
     return f
 
@@ -266,6 +321,7 @@ def doc03():
                              ("LINEBELOW", (0, 1), (-1, -2), 0.5, RULE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                              ("TOPPADDING", (0, 1), (-1, -1), 10), ("BOTTOMPADDING", (0, 1), (-1, -1), 10), ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
     f += [acc, Spacer(1, 8), field_table([("Date de la dernière mise à jour", v("du_maj", 20))])]
+    f += [Spacer(1, 6), rappel("dans les établissements dotés d'un règlement intérieur, le présent avis est affiché au même emplacement que celui réservé au règlement intérieur (article R. 4121-4).")]
     f += [Spacer(1, 8), P("Le document est également tenu à la disposition des membres de la délégation du personnel du comité social et économique, du service de prévention et de santé au travail, des agents du système d'inspection du travail et des agents des services de prévention des organismes de sécurité sociale. Les anciens travailleurs peuvent consulter les versions en vigueur durant leur période d'activité.", "body")]
     return f
 
@@ -298,25 +354,26 @@ def doc04b():
 
 def doc05():
     f = head("05", "Égalité et non-discrimination", "Égalité de rémunération entre les femmes et les hommes",
-             "Article R. 3221-2 du code du travail")
+             "Article R. 3221-2 du code du travail", "INFORMATION OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 4)]
     for title, paras in T.CT_L3221:
         f += legal_block(title + " du code du travail", paras, title.replace("Article ", "").replace(". ", ""))
     f += [PageBreak()]
     f += head("05", "Égalité et non-discrimination", "Lutte contre les discriminations",
-              "Article L. 1142-6 du code du travail")
+              "Article L. 1142-6 du code du travail", "INFORMATION OBLIGATOIRE")
     f += legal_block("Article 225-1 du code pénal", T.CP_225_1, "225-1")
     f += legal_block("Article 225-1-1 du code pénal", T.CP_225_1_1, "225-1-1")
     f += legal_block("Article 225-1-2 du code pénal", T.CP_225_1_2, "225-1-2")
     f += legal_block("Article 225-2 du code pénal", T.CP_225_2, "225-2")
     f += legal_block("Article 225-3 du code pénal", T.CP_225_3, "225-3")
     f += legal_block("Article 225-4 du code pénal", T.CP_225_4, "225-4")
-    f += [Spacer(1, 6), boxed([P("Toute personne qui s'estime victime d'une discrimination peut saisir gratuitement le <b>Défenseur des droits</b> : <b>09 69 39 00 00</b> · www.defenseurdesdroits.fr", "body")])]
+    f += [Spacer(1, 6), boxed([P("Toute personne qui s'estime victime d'une discrimination peut saisir gratuitement le <b>Défenseur des droits</b> : <b>09 69 39 00 00</b> · www.defenseurdesdroits.fr · Libre réponse 71120, 75342 Paris Cedex 07", "body")]),
+          Spacer(1, 4), rappel("les textes relatifs à l'égalité de rémunération sont portés à la connaissance des personnes ayant accès aux lieux de travail ainsi qu'aux candidats à l'embauche ; les textes relatifs aux discriminations le sont également dans les locaux ou à la porte des locaux où se fait l'embauche (articles R. 3221-2 et L. 1142-6).")]
     return f
 
 def doc06():
     f = head("06", "Harcèlement", "Harcèlement moral et harcèlement sexuel",
-             "Articles L. 1152-4, L. 1153-5 et D. 1151-1 du code du travail")
+             "Articles L. 1152-4, L. 1153-5 et D. 1151-1 du code du travail", "INFORMATION OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 2)]
     f += [P("Harcèlement moral", "h2")]
     f += legal_block("Article 222-33-2 du code pénal", T.CP_222_33_2, "222-33-2")
@@ -325,43 +382,46 @@ def doc06():
     f += [P("Actions contentieuses civiles et pénales ouvertes en matière de harcèlement sexuel", "h2"),
           P("<b>Action civile</b> : la victime peut saisir le conseil de prud'hommes afin d'obtenir réparation du préjudice subi et l'annulation de toute mesure prise à son encontre en raison des faits (articles L. 1153-2 à L. 1153-4 du code du travail). <b>Action pénale</b> : elle peut déposer plainte auprès des services de police ou de gendarmerie, ou saisir directement par écrit le procureur de la République.", "legal")]
     f += [P("Contacts", "h2"),
-          field_table([("Médecin du travail", v("spst_medecin", 30) + " · " + v("spst_tel", 15)),
-                       ("Inspection du travail", v("it_agent", 30) + " · " + v("it_tel", 15)),
-                       ("Défenseur des droits", "09 69 39 00 00 · www.defenseurdesdroits.fr"),
-                       ("Référent du CSE (s'il existe)", v("ref_cse", 45)),
-                       ("Référent de l'employeur (250 salariés et plus)", v("ref_emp", 45))])]
+          field_table([("Médecin du travail", v("spst_medecin", 30) + " · " + v("spst_adresse", 40) + " · " + v("spst_tel", 15)),
+                       ("Inspection du travail", v("it_agent", 30) + " · " + v("it_adresse", 40) + " · " + v("it_tel", 15)),
+                       ("Défenseur des droits", "Libre réponse 71120, 75342 Paris Cedex 07 · 09 69 39 00 00 · www.defenseurdesdroits.fr"),
+                       ("Référent du CSE (s'il existe)", v("ref_cse", 30) + " · " + v("ref_cse_coord", 40)),
+                       ("Référent de l'employeur (250 salariés et plus)", v("ref_emp", 30) + " · " + v("ref_emp_coord", 40))])]
+    f += [Spacer(1, 4), rappel("les textes relatifs au harcèlement sexuel sont également portés à la connaissance des personnes dans les locaux ou à la porte des locaux où se fait l'embauche (article L. 1153-5).")]
     return f
 
 def doc07():
     f = head("07", "Conventions et accords", "Avis relatif aux conventions et accords collectifs applicables",
-             "Articles R. 2262-1 à R. 2262-3 du code du travail")
+             "Articles R. 2262-1 à R. 2262-3 du code du travail", "INFORMATION OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 8)]
     f += [field_table([("Convention collective applicable", v("cc_nom", 60)), ("Identifiant (IDCC)", v("cc_idcc", 10)),
                        ("Accords nationaux interprofessionnels", "Accords nationaux interprofessionnels applicables à l'entreprise"),
                        ("Accords d'entreprise ou d'établissement", v("accords", 70)),
                        ("Lieu où les textes sont tenus à disposition", v("cc_lieu", 60)),
-                       ("Modalités de consultation pendant le temps de travail", v("cc_modalites", 60))])]
-    f += [Spacer(1, 8), P("Un exemplaire à jour de la convention collective applicable est tenu à la disposition des salariés sur le lieu de travail. Les salariés peuvent en prendre connaissance pendant leur temps de travail, dans les conditions précisées ci-dessus.", "body")]
+                       ("Modalités de consultation pendant le temps de présence", v("cc_modalites", 60))])]
+    f += [Spacer(1, 8), P("Un exemplaire à jour de la convention collective applicable est tenu à la disposition des salariés sur le lieu de travail. Les salariés peuvent en prendre connaissance pendant leur temps de présence sur le lieu de travail, dans les conditions précisées ci-dessus.", "body")]
     return f
 
 def doc08():
     f = head("08", "Congés payés", "Congés payés : période de prise et ordre des départs",
-             "Articles L. 3141-13 à L. 3141-16, D. 3141-5 et D. 3141-6 du code du travail")
+             "Articles L. 3141-13 à L. 3141-16, D. 3141-5 et D. 3141-6 du code du travail", "INFORMATION OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 8)]
-    f += [field_table([("Période de prise des congés", "du " + v("cp_debut", 18) + " au " + v("cp_fin", 18)),
+    f += [field_table([("Période de référence pour l'acquisition des congés", "du " + v("cp_debut", 18) + " au " + v("cp_fin", 18)),
                        ("Période de prise du congé principal", "du " + v("cp_p_debut", 18) + " au " + v("cp_p_fin", 18)),
                        ("Fermeture de l'établissement (le cas échéant)", v("cp_fermeture", 50)),
-                       ("Critères de fixation de l'ordre des départs", v("cp_criteres", 70)),
+                       ("Critères retenus pour fixer l'ordre des départs", v("cp_criteres", 70)),
                        ("Caisse de congés payés (le cas échéant)", v("cp_caisse", 60))])]
+    f += [Spacer(1, 4), rappel("la période de prise des congés est portée à la connaissance des salariés au moins deux mois avant son ouverture (article D. 3141-5). L'ordre des départs est communiqué, par tout moyen, à chaque salarié un mois avant son départ (article D. 3141-6).")]
     f += [Spacer(1, 6), signature_block()]
     return f
 
 def doc09():
     f = head("09", "Premiers secours", "Organisation des premiers secours",
-             "Articles R. 4224-14 à R. 4224-16 du code du travail")
+             "Articles R. 4224-14 à R. 4224-16 du code du travail", "DOCUMENT OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 6)]
-    f += [field_table([("Emplacement du matériel de premiers secours", v("ps_lieu", 60)),
-                       ("Sauveteur(s) secouriste(s) du travail", v("ps_sst", 60)),
+    f += [field_table([("Date de l'avis du médecin du travail", v("ps_avis", 20)),
+                       ("Emplacement du matériel de premiers secours", v("ps_lieu", 60)),
+                       ("Sauveteur(s) secouriste(s) du travail (le cas échéant)", v("ps_sst", 60)),
                        ("Emplacement du défibrillateur (le cas échéant)", v("ps_dae", 50)),
                        ("Personne à prévenir dans l'établissement", v("ps_contact", 50))])]
     f += [P("Conduite à tenir en cas d'accident", "h2")]
@@ -370,6 +430,7 @@ def doc09():
              ("3. Alerter", "Appeler le <b>15</b> (SAMU), le <b>18</b> (pompiers) ou le <b>112</b>. Indiquer : l'adresse précise, la nature de l'accident, le nombre de victimes et leur état, les gestes déjà effectués. Ne pas raccrocher le premier."),
              ("4. Secourir", "Pratiquer les gestes de premiers secours adaptés, dans la limite de sa formation, jusqu'à l'arrivée des secours.")]
     f += [grid(["Étape", "Action"], [[a, b] for a, b in steps], [32*mm, 142*mm])]
+    f += [Spacer(1, 4), rappel("les mesures de premiers secours sont prises après avis du médecin du travail et consignées dans un document tenu à la disposition de l'inspection du travail (article R. 4224-16).")]
     return f
 
 def registre_cover(num, short, title, basis, intro, kind):
@@ -385,8 +446,9 @@ def doc10():
     f += [register_line(W_L), Spacer(1, 4),
           rappel("les noms et prénoms de tous les salariés sont inscrits dans l'ordre des embauches, au moment de l'embauche et de façon indélébile. Les mentions sont conservées cinq ans à compter de la date de départ du salarié ou du stagiaire. Une copie des titres de travail des salariés étrangers est annexée au registre."), Spacer(1, 4)]
     hdr = ["N°", "Nom et prénoms", "Nationalité", "Date de naissance", "Sexe", "Emploi", "Qualification", "Date d'entrée", "Date de sortie",
-           "Type de contrat (CDD, temps partiel, apprentissage, professionnalisation)", "Travail temporaire : nom et adresse de l'ETT / groupement d'employeurs", "Salarié étranger : type et n° d'ordre du titre de travail"]
-    wd = [8, 32, 18, 18, 10, 22, 22, 17, 17, 32, 32, 33]
+           "Type de contrat (CDD, temps partiel, apprentissage, professionnalisation)", "Date d'autorisation d'embauche ou de licenciement (si requise)",
+           "Salarié temporaire : nom et adresse de l'entreprise de travail temporaire · Salarié mis à disposition par un groupement d'employeurs : nom et adresse du groupement", "Salarié étranger : type et n° d'ordre du titre de travail"]
+    wd = [7, 28, 16, 16, 9, 20, 20, 15, 15, 28, 22, 34, 28]
     s = sum(wd); wd = [W_L * x / s for x in wd]
     rows = []
     if not Ctx.blank:
@@ -402,11 +464,12 @@ def doc10():
 
 def doc11():
     f = [NextPageTemplate("P"), PageBreak()]
-    f += head("11", "Document unique", "Document unique d'évaluation des risques professionnels",
-              "Articles L. 4121-1 à L. 4121-3-1 et R. 4121-1 à R. 4121-4 du code du travail", "DOCUMENT OBLIGATOIRE")
+    f += head("11", "Document unique", "Document unique d'évaluation des risques professionnels : trame à compléter",
+              "Articles L. 4121-1 à L. 4121-3-1 et R. 4121-1 à R. 4121-4 du code du travail", "TRAME À COMPLÉTER")
     f += [establishment_line(), Spacer(1, 6),
           field_table([("Activité de l'établissement", v("activite", 60)), ("Effectif", v("effectif", 10)),
-                       ("Personne chargée de l'évaluation", v("du_contact", 45)), ("Date de l'évaluation", v("du_maj", 20))])]
+                       ("Personne chargée de l'évaluation", v("du_contact", 45)), ("Date de l'évaluation", '<font color="#8A94A3">....................</font>')])]
+    f += [Spacer(1, 4), rappel("cette trame ne constitue pas l'évaluation des risques. Le document unique n'est établi qu'une fois l'inventaire des risques de chaque unité de travail réalisé et consigné.")]
     f += [P("Rappel des obligations", "h2"),
           grid(["Point", "Règle"],
                [["Contenu", "Inventaire des risques identifiés dans chaque unité de travail et résultats de leur évaluation."],
@@ -419,12 +482,12 @@ def doc11():
           grid(["Version", "Date", "Motif de la mise à jour", "Rédacteur"], [], [20*mm, 30*mm, 84*mm, 40*mm], nblank=5, rowh=7)]
     f += [NextPageTemplate("L"), PageBreak()]
     f += head("11", "Document unique", "Évaluation des risques par unité de travail",
-              "Article R. 4121-1 du code du travail", "DOCUMENT OBLIGATOIRE")
+              "Article R. 4121-1 du code du travail", "TRAME À COMPLÉTER")
     hdr = ["Unité de travail", "Danger identifié", "Risque et situation d'exposition", "Gravité (1-4)", "Probabilité (1-4)", "Niveau de risque",
            "Mesures de prévention existantes", "Actions à mettre en œuvre", "Responsable", "Échéance"]
     wd = [26, 26, 34, 13, 15, 14, 34, 34, 20, 16]; s = sum(wd); wd = [W_L * x / s for x in wd]
     f += [grid(hdr, [], wd, nblank=9, rowh=12)]
-    f += [Spacer(1, 4), P("Cotation proposée : gravité 1 (faible) à 4 (très grave) ; probabilité 1 (rare) à 4 (très fréquent) ; niveau de risque = gravité × probabilité. L'employeur peut retenir une autre méthode de cotation, à condition de l'indiquer.", "small")]
+    f += [Spacer(1, 4), P("Cotation fournie : gravité 1 (faible) à 4 (très grave) ; probabilité 1 (rare) à 4 (très fréquent) ; niveau de risque = gravité × probabilité.", "small")]
     return f
 
 def simple_register(num, short, title, basis, intro, hdr, wd, n=8, kind="REGISTRE OBLIGATOIRE"):
@@ -444,9 +507,9 @@ def doc12():
 
 def doc13():
     return simple_register("13", "Danger grave et imminent", "Registre des dangers graves et imminents",
-        "Articles L. 4131-1 à L. 4132-5 et D. 4132-1 à D. 4132-2 du code du travail",
-        "Tout avis de danger grave et imminent est consigné par écrit dans le présent registre, sous la responsabilité de l'employeur. Les pages sont numérotées et authentifiées par le tampon du comité social et économique lorsqu'il existe. Le registre est tenu à la disposition des représentants du personnel.",
-        ["Date et heure", "Poste de travail concerné", "Nature et cause du danger", "Nom des travailleurs exposés", "Nom et signature de l'auteur de l'avis", "Mesures prises par l'employeur", "Signature de l'employeur"],
+        "Articles L. 4131-2, L. 4132-2 et D. 4132-1 à D. 4132-2 du code du travail",
+        "L'avis du représentant du personnel au comité social et économique qui constate qu'il existe une cause de danger grave et imminent (article L. 4131-2) est consigné sur le présent registre. Il est daté et signé et indique les postes de travail concernés, la nature et la cause du danger et le nom des travailleurs exposés. Les pages sont numérotées et authentifiées par le tampon du comité. Le registre est tenu, sous la responsabilité de l'employeur, à la disposition des représentants du personnel au comité.",
+        ["Date et heure", "Poste de travail concerné", "Nature et cause du danger", "Nom des travailleurs exposés", "Nom et signature du représentant au CSE", "Mesures prises par l'employeur", "Signature de l'employeur"],
         [20, 34, 44, 38, 34, 50, 22])
 
 def doc14():
@@ -457,6 +520,15 @@ def doc14():
         [18, 40, 42, 36, 36, 32, 38])
 
 # ---------- panneau A3 ----------
+def _fit(c, txt, font, size, width, mini=7):
+    """Réduit la police pour que le texte tienne dans la largeur ; tronque en dernier recours."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    while size > mini and stringWidth(txt, font, size) > width:
+        size -= 0.5
+    while txt and stringWidth(txt, font, size) > width:
+        txt = txt[:-2] + "…"
+    c.setFont(font, size); _fit.txt = txt
+
 def panneau(path):
     c = rl_canvas.Canvas(path, pagesize=A3)
     W, H = A3
@@ -473,9 +545,9 @@ def panneau(path):
         ("Inspection du travail", [("Service", "it_service"), ("Adresse", "it_adresse"), ("Téléphone", "it_tel"), ("Agent de contrôle", "it_agent")], "Art. D. 4711-1 C. trav."),
         ("Santé au travail", [("Organisme", "spst_nom"), ("Adresse", "spst_adresse"), ("Téléphone", "spst_tel"), ("Médecin du travail", "spst_medecin")], "Art. D. 4711-1 C. trav."),
         ("Secours d'urgence", [("SAMU", "=15"), ("Police secours", "=17"), ("Pompiers", "=18"), ("Urgence européen", "=112"), ("Sourds et malentendants", "=114")], "Art. D. 4711-1 C. trav."),
-        ("Défenseur des droits", [("Téléphone", "=09 69 39 00 00"), ("Site", "=www.defenseurdesdroits.fr")], "Art. D. 1151-1 C. trav."),
+        ("Défenseur des droits", [("Adresse", "=Libre réponse 71120, 75342 Paris Cedex 07"), ("Téléphone", "=09 69 39 00 00"), ("Site", "=www.defenseurdesdroits.fr")], "Art. D. 1151-1 C. trav."),
         ("Horaire collectif", [("Durée hebdomadaire", "hc_duree"), ("Horaires", "hc_resume"), ("Repos hebdomadaire", "repos")], "Art. L. 3171-1 C. trav. · détail : document 02"),
-        ("Congés payés", [("Période de prise", "cp_resume"), ("Ordre des départs", "cp_criteres")], "Art. D. 3141-5 et D. 3141-6 C. trav. · document 08"),
+        ("Congés payés", [("Congé principal", "cp_resume"), ("Critères des départs", "cp_criteres")], "Art. D. 3141-5 et D. 3141-6 C. trav. · document 08"),
         ("Convention collective", [("Intitulé", "cc_nom"), ("IDCC", "cc_idcc"), ("Consultation", "cc_lieu")], "Art. R. 2262-3 C. trav. · document 07"),
         ("Document unique", [("Lieu de consultation", "du_lieu"), ("Contact", "du_contact")], "Art. R. 4121-4 C. trav. · document 03"),
         ("Harcèlement", [("Référent CSE", "ref_cse"), ("Référent employeur", "ref_emp")], "Art. L. 1152-4, L. 1153-5 C. trav. · textes : document 06"),
@@ -493,14 +565,14 @@ def panneau(path):
         for lab, key in fields:
             c.setFillColor(GREY); c.setFont("Helvetica", 9); c.drawString(x + 5*mm, yy, lab)
             if key.startswith("="):
-                c.setFillColor(INK); c.setFont("Helvetica-Bold", 11); c.drawString(x + 48*mm, yy, key[1:])
+                c.setFillColor(INK); _fit(c, key[1:], "Helvetica-Bold", 11, cw - 53*mm); c.drawString(x + 48*mm, yy, _fit.txt)
             elif getattr(Ctx, "gabarit", False):
                 c.setFillColor(colors.HexColor("#CFE3FF" if key in COND else "#FFE38A")); c.rect(x + 47*mm, yy - 2.2*mm, cw - 52*mm, 6*mm, stroke=0, fill=1)
                 c.setFillColor(colors.HexColor("#3A2A00")); c.setFont("Helvetica", 8.5); c.drawString(x + 48.5*mm, yy, "[" + LABELS.get(key, key) + "]")
             elif Ctx.blank:
                 c.setStrokeColor(colors.HexColor("#8A94A3")); c.setDash(1, 2); c.line(x + 48*mm, yy - 1, x + cw - 5*mm, yy - 1); c.setDash()
             else:
-                c.setFillColor(FILL); c.setFont("Helvetica-Bold", 10.5); c.drawString(x + 48*mm, yy, _raw(str(Ctx.data.get(key, "")))[:52])
+                c.setFillColor(FILL); _fit(c, _raw(str(Ctx.data.get(key, ""))), "Helvetica-Bold", 10.5, cw - 53*mm); c.drawString(x + 48*mm, yy, _fit.txt)
             yy -= 9*mm
         c.setFillColor(GREY); c.setFont("Helvetica-Oblique", 7.5); c.drawString(x + 5*mm, top - bh + 3.5*mm, ref)
         y[col] = top - bh - 6*mm
@@ -523,22 +595,30 @@ EXEMPLE = {
     "it_service": "DREETS · Unité de contrôle n° 0 (fictif)", "it_adresse": "1 avenue Fictive, 77000 Ville-Exemple", "it_tel": "01 00 00 00 00", "it_agent": "Mme Exemple",
     "spst_nom": "Service de santé au travail Exemple", "spst_adresse": "3 place Fictive, 77000 Ville-Exemple", "spst_tel": "01 00 00 00 01", "spst_medecin": "Dr Exemple",
     "secours_local": "Centre de secours de Ville-Exemple",
-    "hc_service": "Ensemble du personnel", "hc_duree": "35", "hc_date": "01/11/2026",
+    "hc_service": "Personnel administratif", "hc_duree": "35", "hc_date": "01/11/2026",
     "hc_jours": {"Lundi": ["8 h 30", "17 h 30", "12 h 30 - 13 h 30", "", "8 h"], "Mardi": ["8 h 30", "17 h 30", "12 h 30 - 13 h 30", "", "8 h"],
                  "Mercredi": ["8 h 30", "17 h 30", "12 h 30 - 13 h 30", "", "8 h"], "Jeudi": ["8 h 30", "17 h 30", "12 h 30 - 13 h 30", "", "8 h"],
-                 "Vendredi": ["8 h 30", "12 h 30", "", "", "3 h"]},
-    "hc_resume": "Lun.-jeu. 8 h 30-17 h 30, ven. 8 h 30-12 h 30", "repos": "Samedi et dimanche",
+                 "Vendredi": ["8 h 30", "11 h 30", "", "", "3 h"]},
+    "hc_resume": "Lun.-jeu. 8 h 30-17 h 30, ven. 8 h 30-11 h 30", "repos": "Samedi et dimanche",
     "eq1": "Sans objet", "eq1c": "Sans objet",
-    "ville": "Ville-Exemple", "date": "02/11/2026", "signataire": "M. Exemple, gérant", "x": "",
+    "ville": "Ville-Exemple", "date": "15/10/2026", "signataire": "M. Exemple, gérant", "x": "",
     "du_lieu": "Bureau de la direction, armoire « Sécurité »", "du_horaires": "Du lundi au vendredi, 9 h - 12 h", "du_contact": "M. Exemple, gérant",
     "du_num": "Sur demande à l'adresse rh@exemple.invalid", "du_maj": "15/10/2026",
-    "ref_cse": "Sans objet (pas de CSE)", "ref_emp": "Sans objet (moins de 250 salariés)",
+    "ref_cse": "Sans objet (pas de CSE)", "ref_emp": "Sans objet (moins de 250 salariés)", "ref_cse_coord": "sans objet", "ref_emp_coord": "sans objet",
+    "am_accord": "Accord d'entreprise du 01/09/2026 (exemple)", "am_semaines": "4", "am_debut": "02/11/2026",
+    "am_programme": [["Semaine 1", "Lundi au vendredi, 8 h - 12 h et 13 h - 17 h", "40 h"], ["Semaine 2", "Lundi au vendredi, 8 h - 12 h et 13 h - 16 h", "35 h"],
+                     ["Semaine 3", "Lundi au jeudi, 8 h - 12 h et 13 h - 16 h", "28 h"], ["Semaine 4", "Lundi au vendredi, 8 h - 12 h et 13 h - 17 h", "40 h"]],
+    "ev_alerte": "Alarme sonore à l'accueil", "ev_sorties": "Porte principale et issue de secours de l'atelier", "ev_responsable": "M. Exemple, gérant",
+    "ev_appel": "Mme Exemple-Deux", "ev_rassemblement": "Parking devant l'entrée", "ev_aide": "Accompagnement par un collègue désigné",
+    "ri_date": "01/03/2026", "ri_lieu": "Panneau d'affichage de la salle de pause",
+    "vi_zones": "Entrée et zone de stockage", "vi_finalite": "Sécurité des biens et des personnes", "vi_responsable": "ATELIER EXEMPLE SARL (fictif)",
+    "vi_duree": "30 jours", "vi_contact": "direction@exemple.invalid",
     "cc_nom": "Convention collective nationale (exemple)", "cc_idcc": "0000", "accords": "Aucun accord d'entreprise",
     "cc_lieu": "Bureau de la direction", "cc_modalites": "Sur simple demande, pendant le temps de travail",
     "cp_debut": "01/05/2026", "cp_fin": "30/04/2027", "cp_p_debut": "01/05/2027", "cp_p_fin": "31/10/2027",
     "cp_fermeture": "Du 10 au 23 août 2027", "cp_criteres": "Situation de famille, ancienneté, activité chez un autre employeur", "cp_caisse": "Sans objet",
-    "cp_resume": "Du 1er mai au 30 avril",
-    "ps_lieu": "Trousse de secours à l'accueil", "ps_sst": "Mme Exemple-Deux (SST)", "ps_dae": "Sans objet", "ps_contact": "M. Exemple, gérant",
+    "cp_resume": "Du 1er mai au 31 octobre",
+    "ps_avis": "01/10/2026", "ps_lieu": "Trousse de secours à l'accueil", "ps_sst": "Mme Exemple-Deux (SST)", "ps_dae": "Sans objet", "ps_contact": "M. Exemple, gérant",
     "activite": "Atelier de fabrication (exemple)", "effectif": "6",
     "commande": "EX-0001",
     "du_contact_tel": "01 00 00 00 02 · direction@exemple.invalid",
@@ -568,14 +648,22 @@ def build(outdir, blank):
 # ====================== LOT 2 : documents selon la situation ======================
 def doc16():
     f = head("16", "Repos hebdomadaire", "Repos hebdomadaire collectif",
-             "Articles R. 3172-1 et R. 3172-2 du code du travail")
+             "Article R. 3172-1 du code du travail", "INFORMATION OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 8)]
     f += [P("Jours et heures de repos collectif attribués aux salariés ne bénéficiant pas du repos hebdomadaire la journée entière du dimanche :", "body"), Spacer(1, 6)]
     rows = [[v("rh_service"), v("rh_jour"), v("rh_heures"), v("rh_modalite")]] if getattr(Ctx, "gabarit", False) else ([] if Ctx.blank else Ctx.data.get("repos_blocs", []))
     f += [grid(["Salariés ou service concernés", "Jour(s) de repos", "Heures (début - fin)", "Modalité"], rows,
                [52*mm, 38*mm, 36*mm, 48*mm], nblank=max(0, 5 - len(rows)), rowh=8)]
+    f += [Spacer(1, 4), rappel("ces jours et heures de repos, ainsi que leurs modalités de communication aux salariés, sont communiqués au préalable à l'agent de contrôle de l'inspection du travail (article R. 3172-1).")]
     f += [Spacer(1, 6), signature_block()]
     return f
+
+def doc16b():
+    return simple_register("16b", "Repos hebdomadaire individuel", "Registre du repos hebdomadaire non collectif",
+        "Article R. 3172-2 du code du travail",
+        "Lorsque le repos hebdomadaire n'est pas donné collectivement à tous les salariés, le présent registre indique les noms des salariés soumis à un régime de repos particulier, ce régime, et pour chaque salarié le jour et, le cas échéant, les fractions de journée choisis pour le repos. Il est tenu constamment à jour et à la disposition de l'agent de contrôle de l'inspection du travail.",
+        ["Nom et prénom du salarié", "Régime de repos hebdomadaire", "Jour de repos", "Fraction(s) de journée", "Date de mise à jour", "Observations"],
+        [50, 50, 28, 34, 24, 50])
 
 def doc17():
     f = [NextPageTemplate("L"), PageBreak()]
@@ -609,6 +697,27 @@ def doc18():
             ("Point de rassemblement", v("ci_rassemblement", 40))]
     f += [Spacer(1, 6), field_table(rows, colw=(78*mm, None))]
     f += [Spacer(1, 6), boxed([P("<b>8° Toute personne apercevant un début d'incendie doit donner l'alarme et mettre en œuvre les moyens de premier secours, sans attendre l'arrivée des travailleurs spécialement désignés.</b>", "body")])]
+    f += [Spacer(1, 4), rappel("la consigne de sécurité incendie est communiquée à l'inspection du travail (article R. 4227-40).")]
+    return f
+
+def doc18b():
+    f = [NextPageTemplate("P"), PageBreak()]
+    f += head("18b", "Instructions d'évacuation", "Instructions d'évacuation",
+              "Articles R. 4227-37 et R. 4141-3-1 du code du travail", "INFORMATION OBLIGATOIRE")
+    f += [establishment_line(), Spacer(1, 4)]
+    f += [Spacer(1, 2), boxed([P('<font size="11"><b>EN CAS D\'INCENDIE OU D\'ALERTE : SAPEURS-POMPIERS 18 · URGENCE 112</b></font>', "center")], bg=colors.HexColor("#FBE9E7"))]
+    f += [Spacer(1, 6), field_table([("Signal ou moyen d'alerte", v("ev_alerte", 50)),
+                                     ("Sorties et cheminement à emprunter", v("ev_sorties", 60)),
+                                     ("Personne qui dirige l'évacuation", v("ev_responsable", 50)),
+                                     ("Personne qui appelle les secours", v("ev_appel", 50)),
+                                     ("Point de rassemblement", v("ev_rassemblement", 50)),
+                                     ("Aide aux personnes à mobilité réduite", v("ev_aide", 60))], colw=(70*mm, None))]
+    f += [P("Conduite à tenir", "h2"),
+          grid(["Étape", "Action"], [["1. Alerter", "Donner l'alarme et prévenir la personne qui dirige l'évacuation."],
+                                     ["2. Évacuer", "Quitter les lieux calmement par les sorties indiquées, sans revenir en arrière ni utiliser d'ascenseur ; fermer les portes derrière soi."],
+                                     ["3. Se rassembler", "Rejoindre le point de rassemblement et y rester jusqu'à l'autorisation de réintégrer les locaux."],
+                                     ["4. Signaler", "Signaler toute personne absente ou restée à l'intérieur."]], [32*mm, 142*mm])]
+    f += [Spacer(1, 4), rappel("des instructions permettant d'assurer l'évacuation des personnes présentes sont établies dans les établissements qui ne sont pas soumis à la consigne de sécurité incendie (article R. 4227-37). Les travailleurs reçoivent une information sur ces instructions (article R. 4141-3-1).")]
     return f
 
 def doc19():
@@ -621,7 +730,7 @@ def doc19():
 def doc20():
     f = [NextPageTemplate("P"), PageBreak()]
     f += head("20", "Notice de poste", "Notice de poste : agents chimiques dangereux",
-              "Article R. 4412-39 du code du travail")
+              "Article R. 4412-39 du code du travail", "DOCUMENT OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 4)]
     f += [field_table([("Poste ou situation de travail", v("np_poste", 50)), ("Agents chimiques dangereux utilisés", v("np_agents", 60)),
                        ("Risques auxquels le travail expose", v("np_risques", 60)), ("Dispositions prises pour les éviter", v("np_dispositions", 60)),
@@ -658,9 +767,12 @@ def doc22():
                        ("Date envisagée pour le premier tour", v("el_tour1", 20)),
                        ("Lieu et modalités du scrutin", v("el_lieu", 50))]),
           Spacer(1, 4), rappel("le premier tour se tient au plus tard le quatre-vingt-dixième jour suivant la diffusion de la présente information.")]
-    f += [P("Procès-verbal de carence", "h2"),
-          P("En l'absence de mise en place ou de renouvellement du comité social et économique, un procès-verbal de carence a été établi et transmis à l'agent de contrôle de l'inspection du travail.", "body"), Spacer(1, 4),
-          field_table([("Date du procès-verbal de carence", v("el_carence", 20)), ("Date de transmission à l'inspection du travail", v("el_transmission", 20))])]
+    if not (getattr(Ctx, "client", False) and str(Ctx.data.get("s_cse", "")).lower() == "oui"):
+        f += [P("Procès-verbal de carence", "h2"),
+              P("En l'absence de candidat aux élections, le procès-verbal de carence est porté à la connaissance du personnel.", "body"), Spacer(1, 4),
+              field_table([("Date du procès-verbal de carence", v("el_carence", 20)),
+                           ("Date de transmission à l'inspection du travail et au prestataire du ministère", v("el_transmission", 20))]),
+              Spacer(1, 4), rappel("le procès-verbal de carence est porté à la connaissance des salariés par tout moyen permettant de lui conférer date certaine. Il est transmis dans les quinze jours, sur le formulaire homologué, à l'agent de contrôle de l'inspection du travail et au prestataire agissant pour le compte du ministre chargé du travail (articles L. 2314-9 et R. 2314-22).")]
     f += [Spacer(1, 6), signature_block()]
     return f
 
@@ -674,12 +786,12 @@ def doc23():
 def doc24():
     f = [NextPageTemplate("P"), PageBreak()]
     f += head("24", "Index égalité", "Index de l'égalité professionnelle entre les femmes et les hommes",
-              "Articles L. 1142-8 et D. 1142-4 du code du travail (entreprises d'au moins cinquante salariés)", "INFORMATION OBLIGATOIRE")
+              "Articles L. 1142-8 et D. 1142-4 du code du travail (entreprises d'au moins cinquante salariés, sans site internet)", "INFORMATION OBLIGATOIRE")
     f += [establishment_line(), Spacer(1, 6)]
     f += [field_table([("Année de calcul", v("ix_annee", 10)), ("Note globale (sur 100)", v("ix_note", 10)),
                        ("Résultats par indicateur", v("ix_indicateurs", 60)),
-                       ("Adresse de publication sur le site internet", v("ix_site", 50)),
                        ("Mesures de correction et objectifs de progression", v("ix_mesures", 60))])]
+    f += [Spacer(1, 4), rappel("les résultats sont publiés sur le site internet de l'entreprise lorsqu'il en existe un ; à défaut, ils sont portés à la connaissance des salariés par tout moyen (article D. 1142-4).")]
     return f
 
 def doc25():
@@ -698,14 +810,40 @@ def doc26():
     f += [establishment_line(), Spacer(1, 6)]
     f += [field_table([("Intitulé et date de l'accord", v("pa_accord", 50)), ("Organisme gestionnaire", v("pa_gestion", 40)),
                        ("Modalités de calcul et de répartition", v("pa_calcul", 60)), ("Lieu où l'accord peut être consulté", v("pa_lieu", 50))])]
+    f += [Spacer(1, 4), rappel("cette information est affichée à défaut d'un autre moyen d'information prévu par l'accord (article D. 3323-12).")]
     return f
 
 def doc27():
     return simple_register("27", "Accidents bénins", "Registre des accidents du travail bénins",
         "Articles L. 441-4 et D. 441-1 à D. 441-4 du code de la sécurité sociale",
-        "Sont inscrits, dans les quarante-huit heures non compris les dimanches et jours fériés, les accidents du travail n'entraînant ni arrêt de travail ni soins médicaux pris en charge par la sécurité sociale. La victime signe le registre en face des indications portées par l'employeur ; le médecin du travail peut le consulter. L'employeur informe sans délai la CARSAT de la tenue du registre et le conserve cinq ans à compter de la fin de l'exercice considéré.",
+        "Sont inscrits, dans les quarante-huit heures non compris les dimanches et jours fériés, les accidents du travail n'entraînant ni arrêt de travail ni soins médicaux pris en charge par la sécurité sociale. La victime signe le registre en face des indications portées par l'employeur ; le médecin du travail peut le consulter. L'employeur informe sans délai la CARSAT de la tenue du registre et le conserve cinq ans à compter de la fin de l'exercice considéré. La tenue du registre suppose la présence permanente d'un médecin, d'un pharmacien, d'un infirmier diplômé d'État ou d'une personne titulaire du diplôme de sauveteur secouriste du travail, l'existence d'un poste de secours d'urgence et le respect des obligations relatives au comité social et économique (article D. 441-1).",
         ["Nom de la victime", "Date et heure", "Lieu", "Circonstances", "Nature et siège des lésions", "Soins donnés · visa du donneur de soins", "Témoins", "Signature de la victime"],
         [30, 20, 24, 44, 32, 36, 24, 22])
+
+def doc28():
+    f = [NextPageTemplate("P"), PageBreak()]
+    f += head("28", "Règlement intérieur", "Avis relatif au règlement intérieur",
+              "Articles L. 1311-2, L. 1321-1 et R. 1321-1 du code du travail (entreprises d'au moins cinquante salariés)", "INFORMATION OBLIGATOIRE")
+    f += [establishment_line(), Spacer(1, 6),
+          field_table([("Date d'entrée en vigueur du règlement intérieur", v("ri_date", 20)),
+                       ("Lieu où le règlement intérieur peut être consulté", v("ri_lieu", 60))])]
+    f += [Spacer(1, 6), P("Le règlement intérieur fixe les mesures d'application de la réglementation en matière de santé et de sécurité dans l'établissement, les règles générales et permanentes relatives à la discipline, la nature et l'échelle des sanctions, ainsi que les dispositions relatives aux droits de la défense des salariés et aux harcèlements moral et sexuel et aux agissements sexistes.", "body")]
+    f += [Spacer(1, 4), rappel("le règlement intérieur est porté, par tout moyen, à la connaissance des personnes ayant accès aux lieux de travail ou aux locaux où se fait l'embauche (article R. 1321-1). L'avis d'accès au document unique est affiché au même emplacement (article R. 4121-4).")]
+    return f
+
+def doc29():
+    f = [NextPageTemplate("P"), PageBreak()]
+    f += head("29", "Vidéosurveillance", "Information sur le dispositif de vidéosurveillance",
+              "Article L. 1222-4 du code du travail · article 13 du règlement (UE) 2016/679", "INFORMATION OBLIGATOIRE")
+    f += [establishment_line(), Spacer(1, 6),
+          boxed([P('<font size="14"><b>ÉTABLISSEMENT PLACÉ SOUS VIDÉOSURVEILLANCE</b></font>', "center")], bg=colors.white)]
+    f += [Spacer(1, 6), field_table([("Zones filmées", v("vi_zones", 60)), ("Finalité du dispositif", v("vi_finalite", 60)),
+                                     ("Responsable du dispositif", v("vi_responsable", 50)),
+                                     ("Durée de conservation des images", v("vi_duree", 20)),
+                                     ("Contact pour exercer ses droits (accès, effacement, limitation, opposition)", v("vi_contact", 50))], colw=(78*mm, None))]
+    f += [Spacer(1, 6), P("Toute personne filmée dispose d'un droit d'accès aux images la concernant. Elle peut introduire une réclamation auprès de la Commission nationale de l'informatique et des libertés (CNIL) · www.cnil.fr.", "body")]
+    f += [Spacer(1, 4), rappel("aucune information concernant personnellement un salarié ne peut être collectée par un dispositif qui n'a pas été porté préalablement à sa connaissance (article L. 1222-4).")]
+    return f
 
 # ====================== libellés des champs ======================
 LABELS = {
@@ -718,11 +856,16 @@ LABELS = {
  "hc_resume": "Résumé des horaires", "repos": "Jour(s) de repos", "eq1": "Équipe", "eq1c": "Composition de l'équipe",
  "ville": "Ville", "date": "Date", "signataire": "Signataire", "x": "",
  "du_lieu": "Lieu de consultation du DUERP", "du_horaires": "Horaires de consultation", "du_contact": "Personne à contacter", "du_num": "Accès numérique", "du_maj": "Date de mise à jour",
- "ref_cse": "Référent harcèlement CSE", "ref_emp": "Référent employeur (≥ 250)",
+ "ref_cse": "Référent harcèlement CSE", "ref_emp": "Référent employeur (≥ 250)", "ref_cse_coord": "Adresse et téléphone du référent CSE", "ref_emp_coord": "Adresse et téléphone du référent employeur",
+ "am_accord": "Accord applicable", "am_semaines": "Nombre de semaines", "am_debut": "Début de la période", "am_sem": "Semaine", "am_horaire": "Horaire de la semaine", "am_duree": "Durée",
+ "ev_alerte": "Moyen d'alerte", "ev_sorties": "Sorties à emprunter", "ev_responsable": "Personne qui dirige l'évacuation", "ev_appel": "Personne qui appelle les secours",
+ "ev_rassemblement": "Point de rassemblement", "ev_aide": "Aide aux personnes à mobilité réduite",
+ "ri_date": "Date d'entrée en vigueur", "ri_lieu": "Lieu de consultation du règlement",
+ "vi_zones": "Zones filmées", "vi_finalite": "Finalité", "vi_responsable": "Responsable du dispositif", "vi_duree": "Durée de conservation", "vi_contact": "Contact pour exercer ses droits",
  "cc_nom": "Convention collective", "cc_idcc": "IDCC", "accords": "Accords d'entreprise", "cc_lieu": "Lieu de consultation", "cc_modalites": "Modalités de consultation",
  "cp_debut": "Début période", "cp_fin": "Fin période", "cp_p_debut": "Début congé principal", "cp_p_fin": "Fin congé principal",
  "cp_fermeture": "Fermeture annuelle", "cp_criteres": "Critères ordre des départs", "cp_caisse": "Caisse de congés payés", "cp_resume": "Période de prise",
- "ps_lieu": "Emplacement trousse de secours", "ps_sst": "Sauveteur secouriste", "ps_dae": "Emplacement défibrillateur", "ps_contact": "Personne à prévenir",
+ "ps_avis": "Date de l'avis du médecin du travail", "ps_lieu": "Emplacement trousse de secours", "ps_sst": "Sauveteur secouriste", "ps_dae": "Emplacement défibrillateur", "ps_contact": "Personne à prévenir",
  "activite": "Activité", "effectif": "Effectif",
  "rh_service": "Salariés concernés", "rh_jour": "Jour de repos", "rh_heures": "Heures de repos", "rh_modalite": "Modalité retenue",
  "dt_salarie": "Nom du salarié", "dt_semaine": "Semaine",
@@ -737,21 +880,26 @@ LABELS = {
  "la_referent": "Référent signalements", "la_canal": "Canal de signalement", "la_procedure": "Lien vers la procédure",
  "pa_accord": "Accord de participation", "pa_gestion": "Organisme gestionnaire", "pa_calcul": "Modalités de calcul", "pa_lieu": "Lieu de consultation",
 }
-COND = {"eq_nom", "eq_jours", "eq_horaires", "eq_compo", "secours_local", "eq1", "eq1c", "ref_cse", "ref_emp", "cp_fermeture", "cp_caisse", "ps_dae", "du_num", "accords", "repos"}
+COND = {"ref_cse_coord", "ref_emp_coord", "eq_nom", "eq_jours", "eq_horaires", "eq_compo", "secours_local", "eq1", "eq1c", "ref_cse", "ref_emp", "cp_fermeture", "cp_caisse", "ps_dae", "du_num", "accords", "repos"}
 
 DOCS = [("01_Socle", "01_Coordonnees_obligatoires", doc01, "P"), ("01_Socle", "02_Horaire_collectif", doc02, "P"),
         ("01_Socle", "03_Acces_document_unique", doc03, "P"), ("01_Socle", "04_Interdiction_fumer_vapoter", doc04, "N"),
         ("01_Socle", "05_Egalite_et_discriminations", doc05, "P"), ("01_Socle", "06_Harcelement", doc06, "P"),
         ("01_Socle", "07_Conventions_et_accords", doc07, "P"), ("01_Socle", "08_Conges_payes", doc08, "P"),
         ("01_Socle", "09_Premiers_secours", doc09, "P"), ("01_Socle", "10_Registre_unique_du_personnel", doc10, "L"),
-        ("01_Socle", "11_Document_unique_DUERP", doc11, "P"), ("01_Socle", "12_Registre_de_securite", doc12, "L"),
-        ("01_Socle", "13_Registre_danger_grave_imminent", doc13, "L"), ("01_Socle", "14_Registre_alertes_sante_environnement", doc14, "L"),
-        ("02_Selon_situation", "04b_Emplacement_fumeur", doc04b, "N"), ("02_Selon_situation", "16_Repos_hebdomadaire", doc16, "P"), ("02_Selon_situation", "17_Decompte_duree_du_travail", doc17, "L"),
-        ("02_Selon_situation", "18_Consigne_securite_incendie", doc18, "P"), ("02_Selon_situation", "19_Registre_exercices_incendie", doc19, "L"),
+        ("01_Socle", "11_Trame_document_unique_DUERP", doc11, "P"), ("01_Socle", "12_Registre_de_securite", doc12, "L"),
+        ("01_Socle", "14_Registre_alertes_sante_environnement", doc14, "L"),
+        ("02_Selon_situation", "02b_Amenagement_temps_de_travail", doc02b, "P"),
+        ("02_Selon_situation", "04b_Emplacement_fumeur", doc04b, "N"), ("02_Selon_situation", "13_Registre_danger_grave_imminent", doc13, "L"),
+        ("02_Selon_situation", "16_Repos_hebdomadaire", doc16, "P"), ("02_Selon_situation", "16b_Registre_repos_hebdomadaire", doc16b, "L"),
+        ("02_Selon_situation", "17_Decompte_duree_du_travail", doc17, "L"),
+        ("02_Selon_situation", "18_Consigne_securite_incendie", doc18, "P"), ("02_Selon_situation", "18b_Instructions_evacuation", doc18b, "P"),
+        ("02_Selon_situation", "19_Registre_exercices_incendie", doc19, "L"),
         ("02_Selon_situation", "20_Notice_de_poste_chimique", doc20, "P"), ("02_Selon_situation", "21_Liste_membres_CSE", doc21, "P"),
         ("02_Selon_situation", "22_Elections_CSE_et_carence", doc22, "P"), ("02_Selon_situation", "23_Registre_questions_CSE", doc23, "L"),
         ("02_Selon_situation", "24_Index_egalite", doc24, "P"), ("02_Selon_situation", "25_Lanceurs_alerte", doc25, "P"),
-        ("02_Selon_situation", "26_Accord_participation", doc26, "P"), ("02_Selon_situation", "27_Registre_accidents_benins", doc27, "L")]
+        ("02_Selon_situation", "26_Accord_participation", doc26, "P"), ("02_Selon_situation", "27_Registre_accidents_benins", doc27, "L"),
+        ("02_Selon_situation", "28_Reglement_interieur", doc28, "P"), ("02_Selon_situation", "29_Videosurveillance", doc29, "P")]
 
 def strip_lead(story):
     while story and (isinstance(story[0], (NextPageTemplate, PageBreak))):
@@ -778,7 +926,7 @@ def legend():
                  [['<span backColor="#FFE38A">&nbsp;[Champ]&nbsp;</span>', "Renseignement obligatoire, saisi une fois dans le questionnaire"],
                   ['<span backColor="#CFE3FF">&nbsp;[Champ]&nbsp;</span>', "Renseignement demandé seulement si la situation l'impose (CSE, caisse de congés, fermeture, défibrillateur…)"],
                   ["Tableaux vierges", "Registres complétés à la main par l'employeur au fil de l'eau (embauches, exercices, alertes…)"],
-                  ["Texte noir", "Contenu fixe : textes légaux et mentions obligatoires, mis à jour par nos soins"]],
+                  ["Texte noir", "Contenu fixe : textes légaux et mentions obligatoires, en vigueur à la date indiquée en pied de page"]],
                  [40*mm, 134*mm])]
 
 def build_all(outdir):
@@ -819,10 +967,12 @@ if __name__ == "__main__":
 
 
 # ====================== MODE CLIENT : pack personnalisé ======================
-# Seuils d'effectif repris des textes : CSE dès 11 salariés (L. 2311-2), registre spécial des
-# demandes CSE sous 50 (L. 2315-22), index égalité, lanceurs d'alerte et participation dès 50,
-# référent harcèlement employeur dès 250 (L. 1153-5-1).
-SOCLE = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14"]
+# Seuils d'effectif repris des textes : CSE dès 11 salariés pendant 12 mois consécutifs (L. 2311-2),
+# registre spécial des demandes CSE sous 50 (L. 2315-22), index égalité sans site internet (D. 1142-4),
+# lanceurs d'alerte et participation dès 50, règlement intérieur 12 mois après le seuil de 50 (L. 1311-2),
+# référent harcèlement employeur dès 250 (L. 1153-5-1). Registre DGI seulement avec CSE (D. 4132-1).
+# Consigne incendie (R. 4227-34) ou, à défaut, instructions d'évacuation (R. 4227-37).
+SOCLE = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "14"]
 
 def _num(name):
     return name.split("_")[0]
@@ -837,18 +987,28 @@ def selection(d):
     """Liste des numéros de documents dus selon la situation déclarée."""
     eff = _int(d.get("effectif"))
     oui = lambda k: str(d.get(k, "")).lower() in ("oui", "true", "1")
+    non = lambda k: str(d.get(k, "")).lower() in ("non", "false", "0")
     sel = list(SOCLE)
+    if oui("s_amenagement"): sel.append("02b")
     if oui("s_fumoir"): sel.append("04b")
-    if oui("s_repos_hors_dimanche"): sel.append("16")
+    if oui("s_cse"): sel.append("13")
+    hors_dimanche = non("s_repos_dimanche") if "s_repos_dimanche" in d else oui("s_repos_hors_dimanche")
+    if hors_dimanche: sel.append("16")
+    if oui("s_repos_individuel"): sel.append("16b")
     if oui("s_horaires_individuels"): sel.append("17")
     if oui("s_incendie"): sel += ["18", "19"]
+    else: sel.append("18b")
     if oui("s_chimique"): sel.append("20")
     if oui("s_cse"): sel.append("21")
-    if eff >= 11: sel.append("22")
+    seuil11 = eff >= 11 and (oui("s_11_12mois") if "s_11_12mois" in d else True)
+    if seuil11: sel.append("22")
     if oui("s_cse") and eff < 50: sel.append("23")
-    if eff >= 50: sel += ["24", "25"]
+    if eff >= 50 and not oui("s_site"): sel.append("24")
+    if eff >= 50: sel.append("25")
     if eff >= 50 or oui("s_participation"): sel.append("26")
-    if oui("s_accidents_benins"): sel.append("27")
+    if oui("s_accidents_benins") and oui("s_ab_soignant") and oui("s_ab_poste") and (eff < 11 or oui("s_cse")): sel.append("27")
+    if eff >= 50 and oui("s_50_12mois"): sel.append("28")
+    if oui("s_video"): sel.append("29")
     return sel
 
 def liste_documents(d):
@@ -870,12 +1030,14 @@ def _defaults(d):
     oui = lambda k: str(d.get(k, "")).lower() in ("oui", "true", "1")
     so = "Sans objet"
     if not oui("s_cse"): d["ref_cse"] = "Sans objet (pas de CSE)"
-    if eff < 250: d["ref_emp"] = "Sans objet (moins de 250 salariés)"
-    for k in ["secours_local", "du_num", "accords", "cp_fermeture", "cp_caisse", "ps_dae", "eq1", "eq1c"]:
+    if not oui("s_cse"): d["ref_cse_coord"] = "sans objet"
+    if eff < 250: d["ref_emp"] = "Sans objet (moins de 250 salariés)"; d["ref_emp_coord"] = "sans objet"
+    for k in ["secours_local", "du_num", "accords", "cp_fermeture", "cp_caisse", "ps_dae", "ps_sst", "eq1", "eq1c"]:
         if not str(d.get(k, "")).strip(): d[k] = so
     if not d.get("repos"): d["repos"] = "Dimanche"
+    if not str(d.get("ps_avis", "")).strip(): d["ps_avis"] = "...................."
     d.setdefault("hc_jours", {}); d.setdefault("equipes", []); d.setdefault("repos_blocs", [])
-    d.setdefault("cse_membres", []); d["rup"] = []   # aucune donnée salarié : registre remis vierge
+    d.setdefault("cse_membres", []); d.setdefault("am_programme", []); d["rup"] = []   # aucune donnée salarié : registre remis vierge
     return d
 
 def build_client(data, outdir, nom_pack="Pack_affichages_obligatoires"):

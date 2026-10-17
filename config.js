@@ -5,10 +5,10 @@ window.CONFIG = {
   // Laisser vide pour un essai : rien n'est enregistré, le pack est généré quand même.
   APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx91meGoBf-dUBFRUc5_00QOhKvVUggotjuqIMWxgoDx-jfBLRF-2SAfEC3Z9m-o4PZ2g/exec",
   // Paiement : désactivé tant que la micro-entreprise n'est pas créée (Lemon Squeezy à brancher ensuite).
-  PAIEMENT_ACTIF: false,
+  PAIEMENT_ACTIF: true,
   URL_PAIEMENT: "",
-  PRIX_HT: "59",
-  CONTACT: "[adresse de contact]",
+  PRIX_HT: "89",
+  CONTACT: "monaffichageemployeur@gmail.com",
   // Code GoatCounter (mesure d'audience sans cookie). Laisser vide pour la désactiver.
   GOATCOUNTER: "",
 };

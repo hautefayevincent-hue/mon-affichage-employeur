@@ -1,3 +1,2 @@
 User-agent: *
-Allow: /
-Sitemap: https://hautefayevincent-hue.github.io/mon-affichage-employeur/sitemap.xml
+Disallow: /

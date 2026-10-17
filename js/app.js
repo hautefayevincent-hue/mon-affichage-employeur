@@ -7,6 +7,7 @@ let A = {};            // réponses
 let etape = 0;
 let client = null;     // { id, commande } une fois enregistré
 
+const estPaye = () => !C.PAIEMENT_ACTIF || !!(client && client.paye);
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const visible = (f) => !f.si || f.si(A);
@@ -210,15 +211,16 @@ function listeDocs(docs) {
 }
 
 async function rendreDiagnostic(zone) {
-  zone.innerHTML = `<h2>Résultat du diagnostic</h2><p class="chargement">Analyse de vos réponses</p>`;
+  zone.innerHTML = `<h2>Documents correspondant à vos réponses</h2><p class="chargement">Analyse de vos réponses</p>`;
   let docs;
   try { docs = await majDocs(); }
-  catch (e) { zone.innerHTML = `<h2>Résultat du diagnostic</h2><p class="erreur">Le diagnostic n'a pas pu être établi. Rechargez la page puis réessayez.</p>`; return; }
+  catch (e) { zone.innerHTML = `<h2>Documents correspondant à vos réponses</h2><p class="erreur">La liste n'a pas pu être établie. Rechargez la page puis réessayez.</p>`; return; }
   const sit = docs.filter((d) => d[0] !== "01_Socle").length;
-  zone.innerHTML = `<h2>Résultat du diagnostic</h2>
+  zone.innerHTML = `<h2>Documents correspondant à vos réponses</h2>
     <div class="resultat"><div class="chiffre">${docs.length}</div>
       <p style="margin:6px 0 0"><b>affichages, registres et documents</b> sont applicables à ${esc(A.raison || "votre établissement")} : ${docs.length - sit} au titre du socle et ${sit} au titre de sa situation.</p></div>
     ${listeDocs(docs)}
+    <p class="aide">Liste établie automatiquement à partir de vos réponses et des textes en vigueur. Information générale, qui ne constitue pas une consultation juridique.</p>
     <h3 class="sous">Recevoir ces documents remplis</h3>
     <p class="intro" style="margin-bottom:0">Renseignez les informations propres à l'établissement : coordonnées des services, horaires, congés, document unique. Elles sont reportées sur chaque document du pack, que vous téléchargez à la fin du questionnaire.</p>`;
   if (!A._prospect && C.APPS_SCRIPT_URL && !ESPACE_ID) {
@@ -234,13 +236,14 @@ async function rendreRecap(zone) {
   try { docs = await majDocs(); }
   catch (e) { zone.innerHTML = `<h2>Récapitulatif</h2><p class="erreur">Le générateur n'a pas pu démarrer. Rechargez la page puis réessayez.</p>`; return; }
   const regs = docs.map((d) => numDoc(d[1])).filter((n) => REGISTRES[n]);
-  const libelle = ESPACE_ID ? "Télécharger le pack à jour" : C.PAIEMENT_ACTIF ? `Payer ${esc(C.PRIX_HT)} € HT et télécharger le pack` : "Télécharger mon pack";
+  const payeOk = ESPACE_ID && estPaye();
+  const libelle = payeOk ? "Télécharger le pack à jour" : C.PAIEMENT_ACTIF ? `Payer ${esc(C.PRIX_HT)} € HT et recevoir le pack` : "Télécharger mon pack";
   zone.innerHTML = `<h2>Récapitulatif</h2>
     <p class="intro">${docs.length} documents établis pour <b>${esc(A.raison || "")}</b>, avec le panneau récapitulatif A3 et le pack complet en un seul PDF.</p>
     ${listeDocs(docs)}
-    ${ESPACE_ID ? "" : `<label class="cgv"><input type="checkbox" id="cgv"><span>J'accepte les <a href="cgv.html" target="_blank">conditions générales de vente</a>. Je demande la fourniture immédiate du pack et reconnais perdre mon droit de rétractation dès son téléchargement.</span></label>`}
+    ${payeOk ? "" : `<label class="cgv"><input type="checkbox" id="cgv"><span>J'accepte les <a href="cgv.html" target="_blank">conditions générales de vente</a>. Je demande la fourniture immédiate du pack et reconnais perdre mon droit de rétractation dès son téléchargement.</span></label>`}
     <div class="actions-recap"><button class="btn btn-lg" id="generer">${libelle}</button></div>
-    ${ESPACE_ID && regs.length ? `<div class="encart"><h3 class="sous">Feuillets supplémentaires de registres</h3>
+    ${payeOk && regs.length ? `<div class="encart"><h3 class="sous">Feuillets supplémentaires de registres</h3>
       <p class="aide">Numérotez les nouveaux feuillets à la suite des précédents.</p>
       <div class="regs">${regs.map((n) => `<label class="pill"><input type="checkbox" value="${n}"> ${esc(REGISTRES[n])}</label>`).join("")}</div>
       <button class="btn-sec" id="feuillets">Télécharger les feuillets</button></div>` : ""}
@@ -258,14 +261,22 @@ function etat(t, err) { const e = $("#etat"); if (e) { e.textContent = t; e.clas
 
 let dernierPack = null;
 async function generer(docs) {
-  if (!ESPACE_ID && !$("#cgv").checked) return etat("Veuillez accepter les conditions générales de vente.", true);
+  const cgv = $("#cgv");
+  if (cgv && !cgv.checked) return etat("Veuillez accepter les conditions générales de vente.", true);
   const btn = $("#generer"); btn.disabled = true;
   try {
     const numeros = docs.map((d) => numDoc(d[1]));
     if (C.APPS_SCRIPT_URL) {
       etat("Enregistrement de votre commande…");
       const r = await appel({ action: client ? "update" : "save", id: client && client.id, email: A.email, reponses: A, documents: numeros });
-      if (r) client = { id: r.id, commande: r.commande };
+      if (r) client = { id: r.id, commande: r.commande, paye: client && client.paye ? true : !!r.paye };
+    }
+    if (C.PAIEMENT_ACTIF && !estPaye()) {
+      if (!client) throw new Error("le paiement nécessite l'enregistrement de la commande.");
+      etat("Ouverture de la page de paiement sécurisé…");
+      const p = await appel({ action: "payer", id: client.id });
+      if (p && p.paye) { client.paye = true; }
+      else { if (!ESPACE_ID) { try { localStorage.removeItem(BROUILLON); } catch (e) {} } window.location.href = p.url; return; }
     }
     etat("Fabrication des documents…");
     dernierPack = await genererPack(donneesPack());
@@ -311,7 +322,15 @@ async function demarrer() {
     try {
       if (!C.APPS_SCRIPT_URL) throw new Error("Espace client indisponible pour le moment.");
       const j = await chargerClient(ESPACE_ID);
-      A = j.reponses || {}; client = { id: ESPACE_ID, commande: j.commande };
+      A = j.reponses || {}; client = { id: ESPACE_ID, commande: j.commande, paye: j.paye !== false };
+      if (!client.paye && params.get("paiement")) {
+        $("#etape").innerHTML = `<p class="chargement">Confirmation de votre paiement</p>`;
+        for (let i = 0; i < 10 && !client.paye; i++) {
+          try { const v = await appel({ action: "verifier", id: ESPACE_ID }); client.paye = !!(v && v.paye); } catch (e) {}
+          if (!client.paye) await new Promise((ok) => setTimeout(ok, 3000));
+        }
+        if (!client.paye) $("#sous-titre").textContent = "Votre paiement n'est pas encore confirmé. Rechargez cette page dans une minute ; le lien vous est aussi envoyé par courriel dès la confirmation.";
+      }
       $("#bandeau").innerHTML = `Commande n° <b>${esc(j.commande)}</b> · ${esc(A.raison || "")}`;
       $("#bandeau").hidden = false;
       etape = etapesVisibles().length - 1;
