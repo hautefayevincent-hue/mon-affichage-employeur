@@ -241,7 +241,11 @@ async function rendreRecap(zone) {
   zone.innerHTML = `<h2>Récapitulatif</h2>
     <p class="intro">${docs.length} documents établis pour <b>${esc(A.raison || "")}</b>, avec le panneau récapitulatif A3 et le pack complet en un seul PDF.</p>
     ${listeDocs(docs)}
-    ${payeOk ? "" : `<label class="cgv"><input type="checkbox" id="cgv"><span>J'accepte les <a href="cgv.html" target="_blank">conditions générales de vente</a>. Je demande la fourniture immédiate du pack et reconnais perdre mon droit de rétractation dès son téléchargement.</span></label>`}
+    ${payeOk ? "" : `<div class="encart-paiement">
+      ${C.PAIEMENT_ACTIF ? `<label class="champ-paiement" for="email-paiement">Adresse e-mail de réception du pack et de la facture</label>
+      <input type="email" id="email-paiement" autocomplete="email" value="${esc(A.email || "")}" placeholder="vous@entreprise.fr">
+      <p class="aide">Votre lien personnel et la facture sont envoyés à cette adresse.</p>` : ""}
+      <label class="cgv"><input type="checkbox" id="cgv"><span>J'accepte les <a href="cgv.html" target="_blank">conditions générales de vente</a>. Je demande la fourniture immédiate du pack et reconnais perdre mon droit de rétractation dès son téléchargement.</span></label></div>`}
     <div class="actions-recap"><button class="btn btn-lg" id="generer">${libelle}</button></div>
     ${payeOk && regs.length ? `<div class="encart"><h3 class="sous">Feuillets supplémentaires de registres</h3>
       <p class="aide">Numérotez les nouveaux feuillets à la suite des précédents.</p>
@@ -261,6 +265,12 @@ function etat(t, err) { const e = $("#etat"); if (e) { e.textContent = t; e.clas
 
 let dernierPack = null;
 async function generer(docs) {
+  const em = $("#email-paiement");
+  if (em) {
+    const v = em.value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { em.focus(); return etat("Indiquez une adresse e-mail valide pour recevoir le pack.", true); }
+    A.email = v; sauverBrouillon();
+  }
   const cgv = $("#cgv");
   if (cgv && !cgv.checked) return etat("Veuillez accepter les conditions générales de vente.", true);
   const btn = $("#generer"); btn.disabled = true;
