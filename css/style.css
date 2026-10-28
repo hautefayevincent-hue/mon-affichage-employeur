@@ -281,3 +281,4 @@ table.saisie input, table.saisie select { padding: 7px 9px; font-size: .9rem; }
 .encart-paiement .champ-paiement { display: block; font-weight: 600; margin-bottom: 6px; }
 .encart-paiement input[type=email] { width: 100%; max-width: 420px; }
 .encart-paiement .cgv { margin: 14px 0 0; }
+.mention-cta { margin: 10px 0 8px; font-size: .9rem; color: #5A6270; }
