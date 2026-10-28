@@ -244,7 +244,10 @@ async function rendreRecap(zone) {
     ${payeOk ? "" : `<div class="encart-paiement">
       ${C.PAIEMENT_ACTIF ? `<label class="champ-paiement" for="email-paiement">Adresse e-mail de réception du pack et de la facture</label>
       <input type="email" id="email-paiement" autocomplete="email" value="${esc(A.email || "")}" placeholder="vous@entreprise.fr">
-      <p class="aide">Votre lien personnel et la facture sont envoyés à cette adresse.</p>` : ""}
+      <p class="aide">Votre lien personnel et la facture sont envoyés à cette adresse.</p>
+      <label class="champ-paiement" for="code-partenaire">Code partenaire (facultatif)</label>
+      <input type="text" id="code-partenaire" autocomplete="off" value="${esc(A.code_partenaire || "")}" placeholder="Code transmis par votre conseiller ou revendeur">
+      <p class="aide">La remise d'un code partenaire s'applique sur la page de paiement. Un code de pack acheté par votre revendeur vous donne le pack sans paiement.</p>` : ""}
       <label class="cgv"><input type="checkbox" id="cgv"><span>Je commande pour les besoins de mon activité professionnelle et j'accepte les <a href="cgv.html" target="_blank">conditions générales de vente</a>.</span></label></div>`}
     <div class="actions-recap"><button class="btn btn-lg" id="generer">${libelle}</button></div>
     ${payeOk && regs.length ? `<div class="encart"><h3 class="sous">Feuillets supplémentaires de registres</h3>
@@ -269,7 +272,10 @@ async function generer(docs) {
   if (em) {
     const v = em.value.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { em.focus(); return etat("Indiquez une adresse e-mail valide pour recevoir le pack.", true); }
-    A.email = v; sauverBrouillon();
+    A.email = v;
+    const cp = $("#code-partenaire");
+    if (cp) A.code_partenaire = cp.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    sauverBrouillon();
   }
   const cgv = $("#cgv");
   if (cgv && !cgv.checked) return etat("Veuillez accepter les conditions générales de vente.", true);
@@ -284,7 +290,7 @@ async function generer(docs) {
     if (C.PAIEMENT_ACTIF && !estPaye()) {
       if (!client) throw new Error("le paiement nécessite l'enregistrement de la commande.");
       etat("Ouverture de la page de paiement sécurisé…");
-      const p = await appel({ action: "payer", id: client.id });
+      const p = await appel({ action: "payer", id: client.id, code: A.code_partenaire || "" });
       if (p && p.paye) { client.paye = true; }
       else { if (!ESPACE_ID) { try { localStorage.removeItem(BROUILLON); } catch (e) {} } window.location.href = p.url; return; }
     }
@@ -294,7 +300,7 @@ async function generer(docs) {
     if (C.APPS_SCRIPT_URL && client) appel({ action: "log", id: client.id }).catch(() => {});
     if (!ESPACE_ID) { try { localStorage.removeItem(BROUILLON); } catch (e) {} }
     rendreFin(docs.length);
-  } catch (e) { etat("La fabrication a échoué : " + e.message, true); btn.disabled = false; }
+  } catch (e) { etat(/^Code/.test(e.message) ? e.message : "La fabrication a échoué : " + e.message, true); btn.disabled = false; }
 }
 
 function rendreFin(n) {
@@ -347,6 +353,8 @@ async function demarrer() {
     } catch (e) { $("#etape").innerHTML = `<p class="erreur">${esc(e.message)}</p>`; $(".nav-etapes").hidden = true; return; }
   } else {
     A = lireBrouillon();
+    const cpUrl = params.get("code");
+    if (cpUrl) { A.code_partenaire = cpUrl.toUpperCase().replace(/[^A-Z0-9]/g, ""); sauverBrouillon(); }
   }
   rendre(false);
 }
