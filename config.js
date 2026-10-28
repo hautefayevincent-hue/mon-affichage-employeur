@@ -8,7 +8,7 @@ window.CONFIG = {
   PAIEMENT_ACTIF: true,
   URL_PAIEMENT: "",
   PRIX_HT: "89",
-  CONTACT: "monaffichageemployeur@gmail.com",
+  CONTACT: "contact@monaffichageemployeur.fr",
   // Code GoatCounter (mesure d'audience sans cookie). Laisser vide pour la désactiver.
   GOATCOUNTER: "",
 };
