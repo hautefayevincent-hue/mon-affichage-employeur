@@ -105,7 +105,7 @@ async function majDocs() {
 
 async function majResume(visibleListe) {
   const box = $("#resume");
-  if (!visibleListe) { box.innerHTML = `<h3>Votre pack</h3><p class="vide">La liste des documents s'affiche après le diagnostic.</p>`; return; }
+  if (!visibleListe) { box.innerHTML = `<h3>Votre pack</h3><p class="vide">La liste des documents s'affiche après l'étude.</p>`; return; }
   box.innerHTML = `<h3>Votre pack</h3><p class="chargement">Calcul en cours</p>`;
   try {
     const docs = await majDocs();
