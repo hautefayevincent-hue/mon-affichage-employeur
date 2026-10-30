@@ -282,3 +282,53 @@ table.saisie input, table.saisie select { padding: 7px 9px; font-size: .9rem; }
 .encart-paiement input[type=email] { width: 100%; max-width: 420px; }
 .encart-paiement .cgv { margin: 14px 0 0; }
 .mention-cta { margin: 10px 0 8px; font-size: .9rem; color: #5A6270; }
+/* Page partenaires */
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+@media (max-width: 1000px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .grid-4 { grid-template-columns: 1fr; } }
+.grid-4 .card h3 { font-size: 1.02rem; margin: 0 0 6px; }
+.formule { display: flex; flex-direction: column; }
+.formule .tag { align-self: flex-start; }
+.formule .chiffre { font-size: 2.6rem; font-weight: 800; color: var(--navy-900); margin: 14px 0 0; line-height: 1; }
+.formule .chiffre-legende { color: var(--muted); margin: 6px 0 12px; font-weight: 600; }
+.formule ul { padding-left: 18px; margin: 0; display: grid; gap: 8px; }
+.formule.mise-en-avant { border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(196, 81, 26, .12); }
+.formule.mise-en-avant .chiffre { color: var(--accent); }
+.steps-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) { .steps-4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .steps-4 { grid-template-columns: 1fr; } }
+.liste-ok { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.liste-ok li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
+.liste-ok svg { width: 20px; height: 20px; color: var(--accent); margin-top: 2px; }
+.form-partenaire input:not([type=checkbox]):not([type=radio]), .form-partenaire select, .form-partenaire textarea { width: 100%; box-sizing: border-box; }
+.form-partenaire .cgv { margin-top: 16px; }
+.champs-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; margin-bottom: 16px; }
+@media (max-width: 640px) { .champs-2 { grid-template-columns: 1fr; } }
+.choix-formule { border: 0; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.choix-formule label { display: flex; gap: 10px; align-items: center; font-weight: 500; }
+.choix-formule input { width: auto; }
+.formule .chiffre-titre { font-size: 1.35rem; font-weight: 800; color: var(--navy-900); margin: 14px 0 12px; line-height: 1.25; }
+.formule.mise-en-avant .chiffre-titre { color: var(--accent); }
+
+/* ---------- page partenaires v2 ---------- */
+.metier { display: flex; flex-direction: column; }
+.metier p { flex: 1; }
+.lien-metier { font-weight: 700; color: var(--accent); text-decoration: none; margin-top: 10px; font-size: .95rem; }
+.lien-metier::after { content: " →"; }
+.lien-metier:hover { text-decoration: underline; }
+.note-employeur { margin: 22px 0 0; padding: 14px 16px; background: var(--navy-50); border-radius: var(--radius); color: var(--muted); font-size: .95rem; }
+.formule .tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--navy-800); background: var(--navy-100); border-radius: 999px; padding: 3px 11px; }
+.formule .pour { color: var(--muted); font-size: .95rem; margin: 0 0 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.quelle-formule caption { text-align: left; font-weight: 800; color: var(--navy-900); font-size: 1.1rem; padding: 0 0 12px; }
+.quelle-formule td.oui, .quelle-formule td.non { text-align: center; font-weight: 700; font-size: 1.1rem; }
+.quelle-formule td.oui { color: var(--ok); }
+.quelle-formule td.non { color: var(--muted); }
+.quelle-formule thead th:not(:first-child) { text-align: center; }
+.quelle-formule tbody th { font-weight: 600; color: var(--ink); }
+.table-scroll .compare.quelle-formule { min-width: 0; }
+@media (max-width: 600px) {
+  .quelle-formule { font-size: .82rem; }
+  .quelle-formule th, .quelle-formule td { padding: 10px 6px; }
+  .quelle-formule thead th { font-size: .74rem; }
+}
+.metier-autre { grid-column: 1 / -1; border: 2px dashed var(--navy-100); background: var(--navy-50); }
