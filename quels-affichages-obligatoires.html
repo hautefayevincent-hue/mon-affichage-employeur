@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quels affichages obligatoires pour mon entreprise ? Vérification gratuite | Mon Affichage Employeur</title>
+<meta name="description" content="Vérifiez gratuitement les affichages et registres obligatoires de votre entreprise selon son effectif et sa situation.">
+
+<link rel="canonical" href="https://monaffichageemployeur.fr/quels-affichages-obligatoires.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Quels affichages obligatoires pour mon entreprise ? Vérification gratuite | Mon Affichage Employeur">
+<meta property="og:description" content="Vérifiez gratuitement les affichages et registres obligatoires de votre entreprise selon son effectif et sa situation.">
+<meta property="og:url" content="https://monaffichageemployeur.fr/quels-affichages-obligatoires.html">
+<meta property="og:image" content="https://monaffichageemployeur.fr/img/apercu-panneau.webp">
+<meta property="og:locale" content="fr_FR">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Vérification des affichages obligatoires", "url": "https://monaffichageemployeur.fr/quels-affichages-obligatoires.html", "applicationCategory": "BusinessApplication", "operatingSystem": "Tous", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}}</script>
+</head>
+<body>
+<header class="site-header"><div class="wrap"><a class="logo" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#15305A"/><path d="M10 8.5h8.5l3.5 3.5v11.5H10z" fill="#fff"/><path d="M18.5 8.5V12H22" fill="none" stroke="#C9D5E6" stroke-width="1.2"/><path d="m12.8 17.2 2.2 2.2 4.4-4.6" fill="none" stroke="#C4511A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Mon Affichage <em>Employeur</em></span></a><nav class="nav" aria-label="Navigation principale"><a href="index.html#contenu">Contenu du pack</a><a href="index.html#fonctionnement">Fonctionnement</a><a href="index.html#tarif">Tarif</a><a href="index.html#questions">Questions</a><a href="partenaires.html">Partenaires</a><a class="btn btn-sm" href="commande.html">Étude gratuite</a></nav></div></header>
+<main id="contenu-principal">
+<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="index.html">Accueil</a> › Vérification</p><h1>Quels affichages obligatoires pour mon entreprise ?</h1><p>Liste des affichages et registres obligatoires de l'établissement, établie à partir de son effectif et de sa situation.</p></div></section>
+<div class="wrap"><div class="prose">
+<style>#outil p{margin:0 0 18px}#outil label.choix{display:inline-flex;gap:6px;align-items:center;margin:6px 18px 0 0;font-weight:500}#outil input[type=radio]{width:auto}#resultat .card ul{color:var(--ink,inherit)}</style>
+<form id="outil" class="carte" onsubmit="return false">
+  <p><label for="o-eff"><b>Combien de salariés dans l'établissement ?</b></label><br>
+  <input id="o-eff" type="number" min="1" inputmode="numeric" placeholder="Ex. : 3" style="max-width:160px"></p>
+  <p id="q-cse" hidden><b>Un comité social et économique (CSE) est-il en place ?</b><br><label class="choix"><input type="radio" name="cse" value="oui"> Oui</label><label class="choix"><input type="radio" name="cse" value="non" checked> Non</label></p>
+  <p><b>Plus de cinquante personnes (salariés et public) peuvent-elles être présentes habituellement dans l'établissement ?</b><br><label class="choix"><input type="radio" name="p50" value="oui"> Oui</label><label class="choix"><input type="radio" name="p50" value="non" checked> Non</label></p>
+  <p><b>Des matières inflammables sont-elles manipulées ou mises en œuvre dans l'établissement ?</b><br><label class="choix"><input type="radio" name="inflam" value="oui"> Oui</label><label class="choix"><input type="radio" name="inflam" value="non" checked> Non</label></p>
+  <p><b>Des produits chimiques classés dangereux sont-ils utilisés ?</b><br><label class="choix"><input type="radio" name="chim" value="oui"> Oui</label><label class="choix"><input type="radio" name="chim" value="non" checked> Non</label></p>
+</form>
+<div id="resultat" hidden>
+  <h2><span id="r-nb"></span> documents obligatoires identifiés</h2>
+  <div class="grid-2">
+    <div class="card"><h3>Documents dus dès le premier salarié</h3><ul id="r-socle"></ul></div>
+    <div class="card"><h3>Documents liés à la situation déclarée</h3><ul id="r-plus"></ul></div>
+  </div>
+  <div id="r-notes-bloc" hidden><h3>Points à vérifier</h3><ul id="r-notes"></ul></div>
+  <div class="encart"><h3>Liste à compléter par l'étude gratuite</h3>
+  <p>D'autres documents dépendent de l'organisation de l'établissement : repos hebdomadaire hors dimanche, horaires individuels, équipes successives, vidéosurveillance, emplacement fumeur, caisse de congés payés. L'étude gratuite les intègre.</p>
+  <a class="btn" data-etude href="commande.html">Faire l'étude gratuite complète</a></div>
+</div>
+<p class="ref">Textes en vigueur au 16 octobre 2026, source Légifrance. Les documents fournis ne constituent pas une consultation juridique.</p>
+<h2>Guides</h2><ul><li><a href="affichage-obligatoire-entreprise.html">Affichages obligatoires en entreprise : la liste</a></li><li><a href="affichage-obligatoire-moins-de-11-salaries.html">Entreprise de moins de 11 salariés</a></li><li><a href="affichage-obligatoire-11-a-49-salaries.html">Entreprise de 11 à 49 salariés</a></li><li><a href="affichages-obligatoires-premiere-embauche.html">Première embauche : affichages et registres</a></li><li><a href="registre-unique-du-personnel.html">Registre unique du personnel</a></li><li><a href="affichage-obligatoire-cse.html">Affichages liés au CSE</a></li><li><a href="affichage-obligatoire-50-salaries.html">Entreprise de 50 salariés et plus</a></li><li><a href="document-unique-affichage.html">Document unique : accès et mise à jour</a></li><li><a href="consigne-securite-incendie.html">Consigne de sécurité incendie</a></li><li><a href="affichage-harcelement-travail.html">Affichage harcèlement au travail</a></li><li><a href="affichage-obligatoire-etablissement-recevant-du-public.html">Établissement recevant du public</a></li></ul>
+</div></div>
+</main>
+<footer class="site-footer"><div class="wrap"><div><a class="logo" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#15305A"/><path d="M10 8.5h8.5l3.5 3.5v11.5H10z" fill="#fff"/><path d="M18.5 8.5V12H22" fill="none" stroke="#C9D5E6" stroke-width="1.2"/><path d="m12.8 17.2 2.2 2.2 4.4-4.6" fill="none" stroke="#C4511A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Mon Affichage <em>Employeur</em></span></a><p>Affichages et registres obligatoires de l'employeur, établis selon la situation de chaque établissement, à partir des textes publiés sur Légifrance.</p></div><div><h4>Le pack</h4><a href="commande.html">Étude gratuite</a><a href="quels-affichages-obligatoires.html">Quels affichages pour moi ?</a><a href="index.html#contenu">Contenu</a><a href="index.html#tarif">Tarif</a><a href="index.html#questions">Questions fréquentes</a><a href="partenaires.html">Partenaires</a></div><div><h4>Guides</h4><a href="affichage-obligatoire-entreprise.html">Affichages obligatoires en entreprise : la liste</a><a href="affichage-obligatoire-moins-de-11-salaries.html">Entreprise de moins de 11 salariés</a><a href="affichage-obligatoire-11-a-49-salaries.html">Entreprise de 11 à 49 salariés</a><a href="affichages-obligatoires-premiere-embauche.html">Première embauche : affichages et registres</a><a href="registre-unique-du-personnel.html">Registre unique du personnel</a><a href="affichage-obligatoire-cse.html">Affichages liés au CSE</a><a href="affichage-obligatoire-50-salaries.html">Entreprise de 50 salariés et plus</a><a href="document-unique-affichage.html">Document unique : accès et mise à jour</a><a href="consigne-securite-incendie.html">Consigne de sécurité incendie</a><a href="affichage-harcelement-travail.html">Affichage harcèlement au travail</a><a href="affichage-obligatoire-etablissement-recevant-du-public.html">Établissement recevant du public</a></div><div><h4>Informations</h4><a href="mentions-legales.html">Mentions légales</a><a href="cgv.html">Conditions générales de vente</a><a href="confidentialite.html">Confidentialité</a></div><p class="legal">Textes en vigueur au 16 octobre 2026. Les documents fournis ne constituent pas une consultation juridique.</p></div></footer>
+<script src="config.js"></script>
+<script src="js/site.js"></script>
+<script src="js/schema.js"></script>
+<script>
+(function () {
+  const T = TITRES, $ = (s) => document.querySelector(s);
+  const SOCLE = ["01","02","03","04","05","06","07","08","09","10","11","12","14"];
+  const form = $("#outil"), res = $("#resultat");
+  const val = (n) => (form.querySelector('input[name="' + n + '"]:checked') || {}).value;
+  function maj() {
+    const eff = parseInt($("#o-eff").value || "0", 10) || 0;
+    $("#q-cse").hidden = eff < 11;
+    if (!eff) { res.hidden = true; return; }
+    const cse = eff >= 11 && val("cse") === "oui";
+    const feu = val("p50") === "oui" || val("inflam") === "oui", chim = val("chim") === "oui";
+    const plus = [];
+    plus.push(feu ? "18" : "18b"); if (feu) plus.push("19");
+    if (chim) plus.push("20");
+    if (cse) { plus.push("21", "13"); if (eff < 50) plus.push("23"); }
+    if (eff >= 11) plus.push("22");
+    if (eff >= 50) plus.push("25", "26");
+    const li = (n) => "<li>" + T[n] + "</li>";
+    let notes = [];
+    if (eff >= 11 && !cse) notes.push("Élections du CSE : dues lorsque le seuil de 11 salariés est atteint pendant 12 mois consécutifs.");
+    if (eff >= 50) notes.push("Index égalité : affiché seulement si l'entreprise n'a pas de site internet. Règlement intérieur : douze mois après le passage du seuil de 50 salariés.");
+    if (eff >= 250) notes.push("Référent harcèlement désigné par l'employeur.");
+    $("#r-nb").textContent = SOCLE.length + plus.length;
+    $("#r-socle").innerHTML = SOCLE.map(li).join("");
+    $("#r-plus").innerHTML = plus.map(li).join("");
+    $("#r-notes").innerHTML = notes.map((n) => "<li>" + n + "</li>").join("");
+    $("#r-notes-bloc").hidden = !notes.length;
+    res.hidden = false;
+  }
+  form.addEventListener("input", maj); form.addEventListener("change", maj);
+  const code = new URLSearchParams(location.search).get("code");
+  if (code) document.querySelectorAll("a[data-etude]").forEach((a) => (a.href = "commande.html?code=" + encodeURIComponent(code)));
+})();
+</script>
+</body>
+</html>
